@@ -17,6 +17,7 @@ interface NumberPadProps {
   canRedo: boolean;
   hintsLeft: number;
   selectedValue: number;
+  onHoverDigit?: (n: number) => void;
 }
 
 export function NumberPad({
@@ -32,6 +33,7 @@ export function NumberPad({
   canRedo,
   hintsLeft,
   selectedValue,
+  onHoverDigit,
 }: NumberPadProps) {
   return (
     <div className="w-full space-y-2">
@@ -47,10 +49,14 @@ export function NumberPad({
               key={n}
               type="button"
               onClick={() => onNumber(n)}
+              onMouseEnter={() => onHoverDigit?.(n)}
+              onMouseLeave={() => onHoverDigit?.(0)}
+              onFocus={() => onHoverDigit?.(n)}
+              onBlur={() => onHoverDigit?.(0)}
               disabled={exhausted && !notesMode}
               className={cn(
                 "relative flex aspect-square items-center justify-center rounded-lg border text-lg font-bold transition-all sm:text-xl",
-                "border-border bg-card hover:border-primary/50 hover:bg-primary/5",
+                "border-border bg-card hover:border-primary/50 hover:bg-primary/5 hover:text-primary hover:-translate-y-0.5 hover:shadow-md",
                 isActive && "border-primary bg-primary/10 text-primary",
                 exhausted && !notesMode && "opacity-30",
                 notesMode && "border-dashed"

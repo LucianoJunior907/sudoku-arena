@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { GuideMiniBoard } from "@/components/guide/GuideMiniBoard";
-import { GUIDE_LEVELS, GUIDE_TECHNIQUES, type GuideTechnique } from "@/lib/guide/content";
+import { GUIDE_LEVELS, GUIDE_TECHNIQUES, techniqueToPractice, type GuideTechnique } from "@/lib/guide/content";
 import { ChevronLeft, GraduationCap, ArrowRight, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -28,12 +28,33 @@ const KIND_STYLE: Record<string, string> = {
 export function GuideView() {
   const { t, locale } = useI18n();
   const setRoute = useAppStore((s) => s.setRoute);
+  const setPracticeBoard = useAppStore((s) => s.setPracticeBoard);
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const active = activeId ? GUIDE_TECHNIQUES.find((x) => x.id === activeId) : null;
 
   if (active) {
-    return <ArticleView technique={active} onBack={() => setActiveId(null)} onPractice={() => setRoute("solo")} />;
+    return (
+      <ArticleView
+        technique={active}
+        onBack={() => setActiveId(null)}
+        onPractice={() => {
+          const pb = techniqueToPractice(active);
+          if (pb) {
+            setPracticeBoard({
+              ...pb,
+              difficulty: "easy",
+              seed: `guide-${active.id}`,
+            });
+            setRoute("solo");
+          } else {
+            // technique illustration isn't a solvable puzzle — fall back to a new easy game
+            setPracticeBoard(null);
+            setRoute("solo");
+          }
+        }}
+      />
+    );
   }
 
   return (

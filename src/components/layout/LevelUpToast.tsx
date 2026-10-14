@@ -28,8 +28,8 @@ export function LevelUpToast() {
   const unlocked = COSMETICS.filter((c) => latest.unlockedCosmeticIds.includes(c.id));
 
   return (
-    <div className="fixed inset-x-0 top-4 z-[100] flex justify-center px-4 animate-float-up">
-      <Card className="relative w-full max-w-sm overflow-hidden border-primary/40 bg-card/95 shadow-2xl backdrop-blur">
+    <div className="pointer-events-none fixed inset-x-0 top-4 z-[100] flex justify-center px-4 animate-float-up">
+      <Card className="pointer-events-auto relative w-full max-w-sm overflow-hidden border-primary/40 bg-card/95 shadow-2xl backdrop-blur">
         <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary via-[var(--warning)] to-primary shimmer" />
         <button
           onClick={() => dismiss(latest.id)}

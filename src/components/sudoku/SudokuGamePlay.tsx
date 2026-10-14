@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import type { useSudokuGame } from "@/hooks/use-sudoku-game";
 import { useAppStore } from "@/lib/store/app-store";
 import { useI18n } from "@/lib/i18n/context";
+import { getBoardTheme } from "@/lib/progression/board-themes";
 import { SudokuBoard } from "@/components/sudoku/SudokuBoard";
 import { NumberPad } from "@/components/sudoku/NumberPad";
 import { WinScreen } from "@/components/sudoku/WinScreen";
@@ -35,6 +36,7 @@ export function SudokuGamePlay({
   const { t } = useI18n();
   const settings = useAppStore((s) => s.settings);
   const { state } = game;
+  const boardThemeVars = useMemo(() => getBoardTheme(settings.boardTheme).vars, [settings.boardTheme]);
 
   // Keyboard support
   useEffect(() => {
@@ -166,6 +168,8 @@ export function SudokuGamePlay({
             conflicts={game.conflicts}
             wrongCells={game.wrongCells}
             selectedIndex={state.selectedIndex}
+            highlightDigit={state.highlightDigit}
+            themeVars={boardThemeVars}
             settings={{
               highlightPeers: settings.highlightPeers,
               highlightSame: settings.highlightSame,
@@ -204,6 +208,7 @@ export function SudokuGamePlay({
             canRedo={game.canRedo}
             hintsLeft={game.hintsLeft}
             selectedValue={state.selectedIndex >= 0 ? state.board[state.selectedIndex] : 0}
+            onHoverDigit={game.setHighlightDigit}
           />
 
           <Card className="p-3">
