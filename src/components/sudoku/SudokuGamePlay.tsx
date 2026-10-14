@@ -13,7 +13,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { formatTime } from "@/lib/sudoku/saved-game";
-import { Clock, AlertTriangle, Pause, Play, RotateCcw, Plus, ChevronLeft, Wand2, SearchCheck, Keyboard, NotebookPen, Share2 } from "lucide-react";
+import { Clock, AlertTriangle, Pause, Play, RotateCcw, Plus, ChevronLeft, Wand2, SearchCheck, Keyboard, NotebookPen, Share2, Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -25,6 +25,7 @@ export function SudokuGamePlay({
   onPlayAgain,
   onNewGame,
   onShare,
+  onExport,
   backLabel,
   showNewGame = true,
 }: {
@@ -33,6 +34,7 @@ export function SudokuGamePlay({
   onPlayAgain: () => void;
   onNewGame?: () => void;
   onShare?: () => void;
+  onExport?: () => void;
   backLabel: string;
   showNewGame?: boolean;
 }) {
@@ -107,6 +109,12 @@ export function SudokuGamePlay({
             <Button variant="outline" size="sm" onClick={onShare} aria-label={t("solo.share")}>
               <Share2 className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">{t("solo.share")}</span>
+            </Button>
+          )}
+          {onExport && (
+            <Button variant="outline" size="sm" onClick={onExport} aria-label={t("solo.exportImage")}>
+              <ImageIcon className="h-3.5 w-3.5" />
+              <span className="hidden lg:inline">{t("solo.exportImage")}</span>
             </Button>
           )}
           <Button

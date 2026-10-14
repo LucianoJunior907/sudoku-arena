@@ -6,6 +6,7 @@ import { useAppStore } from "@/lib/store/app-store";
 import { useI18n } from "@/lib/i18n/context";
 import { SudokuGamePlay } from "@/components/sudoku/SudokuGamePlay";
 import { ShareBoardDialog, LoadSharedBoardDialog } from "@/components/sudoku/ShareDialogs";
+import { ExportImageDialog } from "@/components/sudoku/ExportImageDialog";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +33,7 @@ export function SoloView() {
 
   const [shareOpen, setShareOpen] = useState(false);
   const [loadOpen, setLoadOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   // If a practice board was set (from Guide), load it once on mount.
   const consumedPractice = useRef(false);
@@ -153,6 +155,7 @@ export function SoloView() {
           onPlayAgain={() => game.startNew(state.difficulty)}
           onNewGame={() => game.startNew(state.difficulty)}
           onShare={() => setShareOpen(true)}
+          onExport={() => setExportOpen(true)}
         />
       </div>
       <ShareBoardDialog
@@ -160,6 +163,15 @@ export function SoloView() {
         onOpenChange={setShareOpen}
         puzzle={state.puzzle}
         difficulty={state.difficulty}
+      />
+      <ExportImageDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        board={state.board}
+        notes={state.notes}
+        given={state.given}
+        title="Sudoku Arena"
+        subtitle={`${t("difficulty." + state.difficulty)} · ${t("nav.solo")}`}
       />
     </div>
   );

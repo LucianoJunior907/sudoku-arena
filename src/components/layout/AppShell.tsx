@@ -4,7 +4,7 @@ import { useState, type ReactNode } from "react";
 import { useAppStore } from "@/lib/store/app-store";
 import { useI18n } from "@/lib/i18n/context";
 import { NAV_GROUPS, NAV_ITEMS } from "./nav-config";
-import { Grid3x3, Menu, X, Sun, Moon, Globe, Wifi, WifiOff } from "lucide-react";
+import { Grid3x3, Menu, X, Sun, Moon, Globe, Wifi, WifiOff, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
@@ -84,6 +84,23 @@ function ThemeToggle() {
     >
       <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
       <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+    </Button>
+  );
+}
+
+function SoundToggle() {
+  const soundEnabled = useAppStore((s) => s.settings.soundEnabled);
+  const setSettings = useAppStore((s) => s.setSettings);
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={() => setSettings({ soundEnabled: !soundEnabled })}
+      aria-label={soundEnabled ? "Mute sounds" : "Unmute sounds"}
+      title={soundEnabled ? "Som ligado" : "Som desligado"}
+    >
+      <Volume2 className={`h-4 w-4 transition-all ${soundEnabled ? "scale-100" : "scale-0 absolute"} text-primary`} />
+      <VolumeX className={`absolute h-4 w-4 transition-all ${soundEnabled ? "scale-0" : "scale-100"} text-muted-foreground`} />
     </Button>
   );
 }
@@ -206,6 +223,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <LocalModeBadge />
             <LevelBadge />
             <LanguageMenu />
+            <SoundToggle />
             <ThemeToggle />
           </div>
         </div>

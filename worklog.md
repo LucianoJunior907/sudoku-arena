@@ -358,3 +358,40 @@ Task: QA pass + 3 new features (reset-progress dialog, per-difficulty records vi
 - Share via URL uses a hash fragment (no server) — works on the same device/app version; cross-device requires the recipient to paste the code manually.
 - Recommended next round: (a) keyboard Tab focus-trap in dialogs; (b) a "daily calendar" click-to-replay past days (currently date-locked); (c) board export as image (canvas screenshot); (d) sound on/off toggle in the header; (e) a "puzzle of the week" featured challenge.
 - The scheduled 15-min cron (id 457699) continues to drive autonomous QA + feature work.
+
+---
+Task ID: 11 (cron webDevReview round 5)
+Agent: main
+Task: QA pass + 3 new features (header sound toggle, board export as image, puzzle of the week) + styling polish.
+
+## Current project status / assessment
+- Project complete through Task 10 (all 14 views + sound + achievements + charts + solo tools + candidate hover + streak calendar + guide practice + board themes + keyboard help + clear notes + overview dashboard + reset dialog + records view + share board). Dev server healthy on :3000, lint clean.
+- QA pass via agent-browser: all 14 views navigate cleanly (no errors/console errors); full Solo win flow works (win→XP→achievements); Share dialog generates a valid code; Records view shows best time + podium; mobile (iPhone 14) hamburger nav works. No bugs found.
+
+## Goals / completed modifications / verification results
+
+### New features (mandatory: more features + more styling)
+
+1. **Sound on/off toggle in header** (recommended last round): new `SoundToggle` component in AppShell header (between LanguageMenu and ThemeToggle). Uses Volume2 (primary, when enabled) / VolumeX (muted) icons with smooth scale transitions — mirrors the ThemeToggle pattern. Toggles `settings.soundEnabled` in the store, which is already synced to the audio engine via `setSoundEnabled`. Verified: aria-label changes from "Mute sounds" → "Unmute sounds" on click; setting persists to localStorage (`soundEnabled: false`).
+
+2. **Board export as image** (recommended last round): new `lib/sudoku/board-image.ts` with `boardToDataUrl` (renders the board to a high-DPI canvas with title/subtitle, thick/thin borders, given-vs-user color distinction, candidate notes mini-grid, Sudoku Arena footer watermark; theme-aware light/dark), `downloadBoardImage` (triggers PNG download), and `copyBoardImage` (copies to clipboard via ClipboardItem). New `ExportImageDialog` showing a live preview of the generated image + Download PNG + Copy image buttons (with copied checkmark feedback). Wired into SoloView via `onExport` prop + Export button (ImageIcon) in SudokuGamePlay top bar. Added 6 translation keys (solo.exportImage/Desc/downloadImage/copyImage/imageCopied). Verified: dialog opens with title/download/copy/preview (1 img element); no errors.
+
+3. **Puzzle of the Week featured challenge** (recommended last round): new "Quebra-cabeça da semana / Puzzle of the Week" card on the Lobby — a premium-styled card with Crown icon, chart-4/amber gradient + blurred glow, description, and a "Jogar da semana / Play week" button. Clicking generates a deterministic hard-difficulty puzzle seeded by `week-{year}-W{week}-v1` (ISO week) and loads it into Solo via the existing practice-board mechanism. Same board for everyone on the same app version within a week. Added 3 translation keys (lobby.puzzleOfWeek/Desc/playWeek). Verified: clicking loads an 81-cell board with the "Praticar" practice badge.
+
+### Styling polish (mandatory: more styling)
+- Sound toggle: Volume2/VolumeX icons with smooth scale transition + primary color when enabled, muted color when disabled; mirrors the theme toggle's transition pattern.
+- Puzzle of the Week card: premium gradient border (chart-4/30), dual-color gradient overlay (chart-4 → warning), blurred glow accent, Crown icon in chart-4 tinted badge.
+- Export image dialog: primary-tinted ImageIcon header, live preview with border + shadow, color-coded buttons (outline for copy, default for download).
+- Board image rendering: high-DPI canvas with proper given/user color distinction, thick box borders, candidate notes mini-grid, watermark footer.
+
+### Verification
+- ESLint clean throughout.
+- agent-browser confirmed: Sound toggle aria-label changes + setting persists; Export image dialog renders with preview/download/copy; Puzzle of the Week loads a board (81 cells + practice badge); mobile nav works.
+- No runtime/console errors.
+
+## Unresolved issues / risks / next-phase recommendations
+- The board image export uses canvas rendering (not a DOM screenshot), so it reflects the current board state but not the board theme CSS vars — it uses its own light/dark color scheme. A future round could read the CSS vars at render time for exact theme matching.
+- The Puzzle of the Week uses a "hard" difficulty by default; a future round could rotate difficulties weekly or let the user pick.
+- `copyBoardImage` requires Clipboard API support (HTTPS + modern browser); falls back gracefully with a toast error.
+- Recommended next round: (a) keyboard Tab focus-trap in all dialogs; (b) daily calendar click-to-replay past days; (c) a "puzzle archive" browsing past puzzles of the week; (d) a guided-tour/onboarding for first-time users beyond the language picker; (e) a "daily streak freeze" item (cosmetic) to protect streaks.
+- The scheduled 15-min cron (id 457699) continues to drive autonomous QA + feature work.
