@@ -11,7 +11,7 @@ interface ShortcutHelpDialogProps {
 
 interface ShortcutRow {
   keys: string[];
-  labelKey: "shortcut.placeNumber" | "shortcut.erase" | "shortcut.notes" | "shortcut.hint" | "shortcut.autoNotes" | "shortcut.check" | "shortcut.pause" | "shortcut.undo" | "shortcut.redo" | "shortcut.move" | "shortcut.help";
+  labelKey: "shortcut.placeNumber" | "shortcut.erase" | "shortcut.notes" | "shortcut.hint" | "shortcut.autoNotes" | "shortcut.check" | "shortcut.pause" | "shortcut.undo" | "shortcut.redo" | "shortcut.move" | "shortcut.help" | "shortcut.cycleView";
 }
 
 const ROWS: ShortcutRow[] = [
@@ -25,6 +25,7 @@ const ROWS: ShortcutRow[] = [
   { keys: ["Ctrl", "Z"], labelKey: "shortcut.undo" },
   { keys: ["Ctrl", "Shift", "Z"], labelKey: "shortcut.redo" },
   { keys: ["↑", "↓", "←", "→"], labelKey: "shortcut.move" },
+  { keys: ["Alt", "←", "→"], labelKey: "shortcut.cycleView" },
   { keys: ["?"], labelKey: "shortcut.help" },
 ];
 

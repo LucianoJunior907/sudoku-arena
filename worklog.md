@@ -430,3 +430,38 @@ Task: QA pass + 3 new features (focus-trap hook, guided tour, puzzle archive) + 
 - The puzzle archive generates puzzles on-the-fly from week seeds (no persistence needed), which means past boards are always available. However, records for past weeks aren't tracked (the puzzle loads as practice mode, not as a recorded game).
 - Recommended next round: (a) daily calendar click-to-replay past days; (b) a "streak freeze" cosmetic item; (c) view transition animations (framer-motion page transitions); (d) a per-mode stats comparison view; (e) keyboard shortcut to cycle views.
 - The scheduled 15-min cron (id 457699) continues to drive autonomous QA + feature work.
+
+---
+Task ID: 13 (cron webDevReview round 7)
+Agent: main
+Task: QA pass + 3 new features (view transitions, view-cycle shortcut, daily calendar replay) + styling polish.
+
+## Current project status / assessment
+- Project complete through Task 12 (all 15 views + sound + achievements + charts + solo tools + candidate hover + streak calendar + guide practice + board themes + keyboard help + clear notes + overview dashboard + reset dialog + records view + share board + sound toggle + board export + puzzle of week + focus trap + guided tour + puzzle archive). Dev server healthy on :3000, lint clean.
+- QA pass via agent-browser: all 15 views navigate cleanly (no errors/console errors); full Solo win flow works (win→XP→achievements); guided tour appears + skips; archive loads boards; mobile nav works. No bugs found.
+
+## Goals / completed modifications / verification results
+
+### New features (mandatory: more features + more styling)
+
+1. **View transition animations** (recommended last round): new `ViewTransition` component (framer-motion AnimatePresence + motion.div) wrapping the routed view in page.tsx. Each view change animates in (opacity 0→1, y 8→0, 180ms ease-out) and out (opacity 1→0, y 0→-8). Refactored page.tsx to use a `renderView(route)` switch + `<ViewTransition routeKey={route}>` wrapper. Verified: Alt+ArrowRight navigates Lobby→Solo with a smooth fade/slide transition.
+
+2. **Keyboard shortcut to cycle views** (recommended last round): added a global keydown handler in AppShell for Alt+ArrowLeft/ArrowRight that cycles through all 14 nav items in NAV_ORDER (wraps around). Ignores inputs/textareas. Added `shortcut.cycleView` translation key + a new row in the ShortcutHelpDialog (Alt + ← →). Verified: dispatching Alt+ArrowRight from Lobby navigated to Solo; Alt+ArrowLeft cycled back to Lobby; help dialog shows the new row.
+
+3. **Daily calendar click-to-replay past days** (recommended last round): StreakCalendar now accepts an `onReplayDay?(dateKey)` callback. Past completed days render as buttons (cursor-pointer, hover:scale-150 + ring-2) instead of inert divs; today and future days remain inert. A hint text "Clique num dia concluído para revisar o desafio" shows when the callback is provided. DailyView wires `onReplayDay` to call `game.startDaily(dateKey, rec.difficulty)` (replays with the original difficulty, defaults to easy). Added `daily.clickReplay` translation key. Verified: after inserting a completed daily record for yesterday, the calendar showed 1 clickable completed-day button; clicking it loaded an 81-cell board.
+
+### Styling polish (mandatory: more styling)
+- View transitions: smooth fade+slide on every view change (framer-motion, 180ms ease-out).
+- StreakCalendar: completed past days have stronger hover (scale-150 + ring-2) vs inert days (scale-125 + ring-1); cursor-pointer on clickable cells; hint text below.
+- Shortcut help dialog: new "Alt ← →" row for cycle-views.
+- All transitions respect the existing `animate-float-up` / `animate-pop` animations.
+
+### Verification
+- ESLint clean throughout.
+- agent-browser confirmed: view transitions work (Lobby→Solo→Lobby); Alt+Arrow cycle works; daily calendar replay loads boards; help dialog shows the cycle row; no runtime/console errors.
+
+## Unresolved issues / risks / next-phase recommendations
+- View transitions add a 180ms delay on each navigation — smooth but slightly slower than instant. Could be made configurable in a future round.
+- The daily calendar replay loads the puzzle in "daily" mode, which will re-record a daily result for that date if completed. This is acceptable (it's a replay) but could be made non-recording in a future round.
+- Recommended next round: (a) a "streak freeze" cosmetic item; (b) per-mode stats comparison view; (c) spotlight-style guided tour overlay; (d) board theme preview in settings; (e) a "puzzle solver" assistant that suggests the next move.
+- The scheduled 15-min cron (id 457699) continues to drive autonomous QA + feature work.

@@ -10,10 +10,12 @@ interface StreakCalendarProps {
   records: DailyRecord[];
   /** number of weeks to show */
   weeks?: number;
+  /** Called when a past completed day is clicked. */
+  onReplayDay?: (dateKey: string) => void;
 }
 
 /** GitHub-style contribution heat-map of completed daily challenges. */
-export function StreakCalendar({ records, weeks = 13 }: StreakCalendarProps) {
+export function StreakCalendar({ records, weeks = 13, onReplayDay }: StreakCalendarProps) {
   const { t } = useI18n();
 
   const grid = useMemo(() => {
@@ -101,15 +103,36 @@ export function StreakCalendar({ records, weeks = 13 }: StreakCalendarProps) {
                   const lvl = levelFor(date);
                   const key = date.toISOString().slice(0, 10);
                   const isToday = key === new Date().toISOString().slice(0, 10);
+                  const isPastCompleted = lvl > 0 && !isToday && onReplayDay;
+                  const title = `${date.toLocaleDateString()} · ${
+                    lvl > 0
+                      ? t("daily.completed") + (isPastCompleted ? " · " + t("archive.play") : "")
+                      : "—"
+                  }`;
+                  const cellClass = cn(
+                    "h-3 w-3 rounded-sm transition-all",
+                    !isPastCompleted && "hover:scale-125 hover:ring-1 hover:ring-primary/40",
+                    isPastCompleted && "cursor-pointer hover:scale-150 hover:ring-2 hover:ring-primary",
+                    levelColors[lvl],
+                    isToday && "ring-1 ring-primary ring-offset-1 ring-offset-background"
+                  );
+                  if (isPastCompleted) {
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        title={title}
+                        aria-label={title}
+                        onClick={() => onReplayDay!(key)}
+                        className={cellClass}
+                      />
+                    );
+                  }
                   return (
                     <div
                       key={key}
-                      title={`${date.toLocaleDateString()} · ${lvl > 0 ? t("daily.completed") : "—"}`}
-                      className={cn(
-                        "h-3 w-3 rounded-sm transition-all hover:scale-125 hover:ring-1 hover:ring-primary/40",
-                        levelColors[lvl],
-                        isToday && "ring-1 ring-primary ring-offset-1 ring-offset-background"
-                      )}
+                      title={title}
+                      className={cellClass}
                     />
                   );
                 })}
@@ -124,6 +147,11 @@ export function StreakCalendar({ records, weeks = 13 }: StreakCalendarProps) {
             ))}
             <span className="ml-1">{t("daily.completed").toLowerCase()}</span>
           </div>
+          {onReplayDay && (
+            <p className="mt-2 text-center text-[10px] text-muted-foreground">
+              {t("daily.clickReplay")}
+            </p>
+          )}
         </div>
       </div>
     </Card>

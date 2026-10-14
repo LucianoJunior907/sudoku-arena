@@ -169,7 +169,16 @@ export function DailyView() {
       </div>
 
       {/* Streak heat-map calendar */}
-      <StreakCalendar records={dailyRecords} />
+      <StreakCalendar
+        records={dailyRecords}
+        onReplayDay={(dateKey) => {
+          // Replay a past completed daily challenge with the same difficulty
+          // the user originally played it. Defaults to easy if not found.
+          const rec = dailyRecords.find((r) => r.date === dateKey && r.completed);
+          const diff = rec?.difficulty ?? "easy";
+          game.startDaily(dateKey, diff);
+        }}
+      />
 
       {/* Records history */}
       <Card className="p-5">
