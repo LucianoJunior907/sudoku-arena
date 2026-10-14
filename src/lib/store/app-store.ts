@@ -13,6 +13,7 @@ import {
 } from "@/lib/progression/progression";
 import { ACHIEVEMENTS, evaluateAchievements, type AchievementContext } from "@/lib/progression/achievements";
 import type { Division } from "@/lib/contracts/persistence";
+import { toast as sonnerToast } from "sonner";
 
 /* ------------------------------------------------------------------ */
 /* Types                                                               */
@@ -108,6 +109,7 @@ export interface LevelUpEvent {
   id: string;
   newLevel: number;
   unlockedCosmeticIds: string[];
+  streakFreezesEarned?: number;
   createdAt: number;
 }
 
@@ -440,6 +442,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         id: `lu-${Date.now()}-ach`,
         newLevel: newLevelInfo.level,
         unlockedCosmeticIds: nowUnlockedCos,
+        streakFreezesEarned: crossed.length || undefined,
         createdAt: Date.now(),
       });
     }
@@ -518,10 +521,15 @@ export const useAppStore = create<AppState>((set, get) => ({
     // level up events
     const levelUps = [...get().levelUps];
     if (leveledUp) {
+      const freezeThresholds = [3, 7, 14];
+      const freezesEarned = freezeThresholds.filter(
+        (th) => prevLevel < th && newLevelInfo.level >= th
+      ).length;
       levelUps.push({
         id: `lu-${Date.now()}`,
         newLevel: newLevelInfo.level,
         unlockedCosmeticIds: newlyUnlocked,
+        streakFreezesEarned: freezesEarned || undefined,
         createdAt: Date.now(),
       });
     }
@@ -556,6 +564,9 @@ export const useAppStore = create<AppState>((set, get) => ({
           const updatedProfile = { ...profile, streakFreezes: profile.streakFreezes - 1 };
           localPersistence.set(KEYS.profile, updatedProfile);
           set({ profile: updatedProfile });
+          sonnerToast.info("❄️ Streak freeze used! Your streak was protected.", {
+            description: `${updatedProfile.streakFreezes} freeze${updatedProfile.streakFreezes === 1 ? "" : "s"} remaining.`,
+          });
         } else {
           streak.count = 1;
         }

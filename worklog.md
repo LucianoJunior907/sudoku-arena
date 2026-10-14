@@ -539,3 +539,39 @@ Task: QA pass + 3 new features (naked-pair solver, candidate count toggle, strea
 - Streak freezes are awarded silently (no toast); a future round could show a notification when a freeze is earned or consumed.
 - Recommended next round: (a) a "puzzle difficulty estimator" (rate how hard the current board is based on techniques needed); (b) a spotlight-style guided tour overlay; (c) freeze-earned/consumed notifications; (d) a "hint mode" that shows candidate counts only for cells with ≤ 2 candidates; (e) a per-cell "why" tooltip explaining why a candidate is eliminated.
 - The scheduled 15-min cron (id 457699) continues to drive autonomous QA + feature work.
+
+---
+Task ID: 16 (cron webDevReview round 10)
+Agent: main
+Task: QA pass + 3 new features (difficulty estimator, freeze notifications, candidate-why tooltip) + styling polish.
+
+## Current project status / assessment
+- Project complete through Task 15 (all 15 views + sound + achievements + charts + solo tools + candidate hover + streak calendar + guide practice + board themes + keyboard help + clear notes + overview dashboard + reset dialog + records view + share board + sound toggle + board export + puzzle of week + focus trap + guided tour + puzzle archive + view transitions + cycle shortcut + daily calendar replay + puzzle solver + board theme preview + per-mode stats comparison + naked-pair solver + candidate count toggle + streak freeze). Dev server healthy on :3000, lint clean.
+- QA pass via agent-browser: all 15 views + Archive navigate cleanly (no errors); full Solo win flow works (win→XP→achievements); solver dialog works; candidate count toggle shows 45 counts. No bugs found.
+
+## Goals / completed modifications / verification results
+
+### New features (mandatory: more features + more styling)
+
+1. **Puzzle difficulty estimator** (recommended last round): new `lib/sudoku/difficulty-estimator.ts` with `estimateDifficulty(puzzle)` — simulates a progressive logical solve using naked singles, hidden singles, and naked pairs until stuck. Returns a `DifficultyEstimate` with: rating (trivial/easy/medium/hard/expert/diabolical), score (0-100), techniques used, counts of each technique, cells remaining, and whether advanced techniques are needed. New `DifficultyDialog` showing: a Gauge icon (color-coded by rating), the rating name (large), a score progress bar, a technique breakdown grid (naked singles, hidden singles, naked pairs, cells remaining counts), and an alert if advanced techniques are needed. Wired into SoloView via `onDifficulty` prop + a Gauge button in the SudokuGamePlay tools row. Added 16 translation keys (difficulty.* + solo.difficulty*). Verified: dialog opens on a fresh easy puzzle, shows "Fácil" rating, score 0/100, technique breakdown with naked singles count, no errors.
+
+2. **Freeze-earned/consumed notifications** (recommended last round): added `streakFreezesEarned` field to `LevelUpEvent` — set when level-up crosses thresholds 3, 7, 14 (in both `recordGame` and `checkAchievements`). The `LevelUpToast` now shows a Snowflake badge with "+N Congelamento de sequência" when freezes are earned during a level-up. For consumed freezes, added a `sonnerToast.info()` call directly in `recordDaily` when a freeze is consumed — shows "❄️ Streak freeze used!" with the remaining count. Verified: LevelUpToast shows the freeze badge; the consumed-freeze toast fires when `recordDaily` triggers a freeze consumption.
+
+3. **Per-cell "why" tooltip** (recommended last round): new `CandidateWhy` component (`components/sudoku/`) — wraps a cell with a Radix Tooltip that explains why each non-candidate digit is eliminated. For the selected empty cell, it lists each eliminated digit with its blocking peer (e.g., "5 — blocked by row (cell R1C3)" or "7 — blocked by box (cell R4C7)"). Uses the `candidatesFor` function to determine candidates, then `findEliminationReason` to find the blocking peer for each eliminated digit. The tooltip appears on hover with a 300ms delay, showing all reasons in a pre-line text block. Added as a standalone component ready for integration into the SudokuBoard's Cell component. Verified: component builds without errors, lint clean.
+
+### Styling polish (mandatory: more styling)
+- Difficulty dialog: Gauge icon color-coded by rating (success/primary/warning/chart-5/destructive), rating-tinted icon background, progress bar for score, technique breakdown grid with active/inactive styling, alert/warning for advanced techniques needed.
+- LevelUpToast: Snowflake badge in chart-5 background when freezes earned.
+- Consumed-freeze toast: snowflake emoji + info-style toast with remaining count.
+- CandidateWhy tooltip: Info icon + pre-line text with elimination reasons.
+
+### Verification
+- ESLint clean throughout.
+- agent-browser confirmed: difficulty estimator opens with "Fácil" rating + score 0/100 + technique breakdown; solver button still works; no runtime/console errors.
+
+## Unresolved issues / risks / next-phase recommendations
+- The difficulty estimator uses the puzzle givens (not the current board state with user entries) — it estimates the original puzzle difficulty. A future round could estimate the remaining difficulty of the current board.
+- The CandidateWhy component is built but not yet integrated into the SudokuBoard's Cell (requires wrapping each cell button with the tooltip, which needs careful handling to not break the board's layout). A future round should integrate it.
+- The freeze-consumed toast uses English text directly (not i18n) since it's called from the store — a future round should pass through the i18n system.
+- Recommended next round: (a) integrate CandidateWhy into SudokuBoard; (b) estimate remaining difficulty (current board, not just givens); (c) a spotlight-style guided tour overlay; (d) a "hint mode" showing only cells with ≤ 2 candidates; (e) board state export as JSON.
+- The scheduled 15-min cron (id 457699) continues to drive autonomous QA + feature work.

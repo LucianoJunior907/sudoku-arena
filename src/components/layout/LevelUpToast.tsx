@@ -8,6 +8,7 @@ import { Sparkles, X, Star } from "lucide-react";
 import { COSMETICS } from "@/lib/progression/progression";
 import { cn } from "@/lib/utils";
 import { playSound } from "@/lib/audio/sounds";
+import { Snowflake } from "lucide-react";
 
 export function LevelUpToast() {
   const levelUps = useAppStore((s) => s.levelUps);
@@ -56,6 +57,12 @@ export function LevelUpToast() {
                     <span>{c.name}</span>
                   </div>
                 ))}
+              </div>
+            )}
+            {latest.streakFreezesEarned && latest.streakFreezesEarned > 0 && (
+              <div className="mt-2 flex items-center gap-1.5 rounded-md bg-[var(--chart-5)]/10 px-2 py-1 text-xs text-[var(--chart-5)]">
+                <Snowflake className="h-3 w-3" />
+                <span>+{latest.streakFreezesEarned} {t("daily.streakFreeze")}</span>
               </div>
             )}
           </div>
