@@ -13,7 +13,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { formatTime } from "@/lib/sudoku/saved-game";
-import { Clock, AlertTriangle, Pause, Play, RotateCcw, Plus, ChevronLeft, Wand2, SearchCheck, Keyboard, NotebookPen } from "lucide-react";
+import { Clock, AlertTriangle, Pause, Play, RotateCcw, Plus, ChevronLeft, Wand2, SearchCheck, Keyboard, NotebookPen, Share2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -24,6 +24,7 @@ export function SudokuGamePlay({
   onExit,
   onPlayAgain,
   onNewGame,
+  onShare,
   backLabel,
   showNewGame = true,
 }: {
@@ -31,6 +32,7 @@ export function SudokuGamePlay({
   onExit: () => void;
   onPlayAgain: () => void;
   onNewGame?: () => void;
+  onShare?: () => void;
   backLabel: string;
   showNewGame?: boolean;
 }) {
@@ -99,6 +101,12 @@ export function SudokuGamePlay({
             <Button variant="outline" size="sm" onClick={onNewGame}>
               <Plus className="mr-1.5 h-3.5 w-3.5" />
               <span className="hidden sm:inline">{t("solo.newGame")}</span>
+            </Button>
+          )}
+          {onShare && (
+            <Button variant="outline" size="sm" onClick={onShare} aria-label={t("solo.share")}>
+              <Share2 className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">{t("solo.share")}</span>
             </Button>
           )}
           <Button

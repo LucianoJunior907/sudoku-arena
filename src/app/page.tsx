@@ -15,6 +15,7 @@ import { FriendsView } from "@/components/views/FriendsView";
 import { LeaderboardView } from "@/components/views/LeaderboardView";
 import { AchievementsView } from "@/components/views/AchievementsView";
 import { OverviewView } from "@/components/views/OverviewView";
+import { RecordsView } from "@/components/views/RecordsView";
 
 export default function Home() {
   const route = useAppStore((s) => s.route);
@@ -33,6 +34,7 @@ export default function Home() {
       {route === "leaderboard" && <LeaderboardView />}
       {route === "achievements" && <AchievementsView />}
       {route === "overview" && <OverviewView />}
+      {route === "records" && <RecordsView />}
       {route === "profile" && <ProfileView />}
     </AppShell>
   );

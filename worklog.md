@@ -323,3 +323,38 @@ Task: QA pass + 3 new features (keyboard help, clear notes, overview dashboard) 
 - Clear notes is not undoable (it doesn't push a history entry) — by design, but could be reconsidered.
 - Recommended next round: (a) keyboard navigation across the whole app (Tab focus traps in dialogs); (b) a "share board" feature (export board as image/URL); (c) per-difficulty best-times leaderboard view (local); (d) sound on/off toggle in the header; (e) a "reset progress" confirmation dialog with type-to-confirm.
 - The scheduled 15-min cron (id 457699) continues to drive autonomous QA + feature work.
+
+---
+Task ID: 10 (cron webDevReview round 4)
+Agent: main
+Task: QA pass + 3 new features (reset-progress dialog, per-difficulty records view, share board) + styling polish.
+
+## Current project status / assessment
+- Project complete through Task 9 (all 13 views + sound + achievements + charts + solo tools + candidate hover + streak calendar + guide practice + board themes + keyboard help + clear notes + overview dashboard). Dev server healthy on :3000, lint clean.
+- QA pass via agent-browser: all 13 views navigate cleanly (no errors/console errors); full Solo win flow works (win→XP→achievements→toast); Overview radar chart renders after a win (1 recharts surface); mobile (iPhone 14) hamburger nav works. No bugs found.
+
+## Goals / completed modifications / verification results
+
+### New features (mandatory: more features + more styling)
+
+1. **Reset progress dialog with type-to-confirm** (recommended last round): new `ResetProgressDialog` component (`components/settings/`) replacing the native `window.confirm` for clearing data. Shows a destructive-themed dialog with a warning icon, full description of what gets deleted, and a text input requiring the user to type "APAGAR" (pt-BR) / "DELETE" (en) to enable the destructive button. Input border turns red on mismatch / green on match. Button disabled until the word matches exactly. Added 7 translation keys (settings.resetTitle/Desc/Confirm/ConfirmPlaceholder/Button/Mismatch). Refactored to use a `key`-based inner component to reset state on open (avoids setState-in-effect lint). Wired into SettingsView: handleClear opens the dialog, handleResetConfirm clears data + reloads. Verified: dialog opens, "Apagar tudo" disabled until "APAGAR" typed, then enables; cancel closes the dialog.
+
+2. **Per-difficulty best-times Records view** (recommended last round): new "Recordes / Records" route + nav item (Timer icon, Account group). New `RecordsView` showing: (a) 3-card overall summary (overall best time, total wins, overall win rate), (b) 4 per-difficulty record cards (medal emoji + difficulty name + rank + best-time badge + games played/wins/win-rate/avg-time stats) with difficulty-colored gradient accents + rings, (c) a podium visualization for the top-3 fastest records (🥇🥈🥉 with varying bar heights), (d) local-only notice + deep-link to Solo. Difficulties ranked by best time (lower = better). Added 11 records.* translation keys. Verified: title/bestTime/noRecord all render.
+
+3. **Share board feature** (recommended last round): new `lib/sudoku/share.ts` with `encodeBoard`/`decodeBoard` (compact `SA1` + diffChar + 81-digit board = 85-char code), `buildShareUrl`/`readShareFromUrl`/`clearShareFromUrl` (URL hash fragment `#s=CODE`, no server needed). New `ShareBoardDialog` (shows the code + a shareable URL, both with copy-to-clipboard buttons + copied-state checkmarks) and `LoadSharedBoardDialog` (paste-a-code input with validation + error state + start button). SoloView difficulty selector gained a "Carregar tabuleiro compartilhado / Load shared board" card with a ClipboardPaste button. SudokuGamePlay top bar gained a Share2 button (onShare prop). URL share-code auto-detection on SoloView mount (decodes + solves + loads as practice). Added 12 solo.share*/shared* translation keys. Verified: Share dialog generates a valid 85-char code (SA1E...); Load dialog accepts the code and loads the board (81 cells + practice badge); the loaded board's givens match the shared code.
+
+### Styling polish (mandatory: more styling)
+- Reset dialog: destructive-themed header with red warning icon, mono uppercase input with red/green border states, disabled→enabled button transition.
+- Records view: per-difficulty medal emojis (🥇🥈🥉🏆), gradient-accented cards with colored rings, podium visualization with gradient bars of varying heights, stat icons (Target/Medal/TrendingUp/Clock).
+- Share dialogs: primary-tinted icon headers (Share2/ClipboardPaste), mono-font code/URL inputs with copy buttons + checkmark feedback, auto-focus on the paste input.
+
+### Verification
+- ESLint clean throughout (refactored ResetProgressDialog to avoid setState-in-effect via key-based remount; removed require() in LoadSharedBoardDialog in favor of static imports).
+- agent-browser confirmed: Records view renders; Reset dialog type-to-confirm enables the button after "APAGAR"; Share dialog generates a valid code; Load dialog accepts the code and loads the board (81 cells + practice badge); shared board givens match; mobile nav includes Records.
+- No runtime/console errors.
+
+## Unresolved issues / risks / next-phase recommendations
+- The share code only encodes the puzzle (givens), not the solution — the loader re-derives the solution via the engine solver on load. If the shared puzzle has multiple solutions, the loaded solution may differ from the original author's; acceptable since the puzzle is what matters.
+- Share via URL uses a hash fragment (no server) — works on the same device/app version; cross-device requires the recipient to paste the code manually.
+- Recommended next round: (a) keyboard Tab focus-trap in dialogs; (b) a "daily calendar" click-to-replay past days (currently date-locked); (c) board export as image (canvas screenshot); (d) sound on/off toggle in the header; (e) a "puzzle of the week" featured challenge.
+- The scheduled 15-min cron (id 457699) continues to drive autonomous QA + feature work.

@@ -1,15 +1,18 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSudokuGame } from "@/hooks/use-sudoku-game";
 import { useAppStore } from "@/lib/store/app-store";
 import { useI18n } from "@/lib/i18n/context";
 import { SudokuGamePlay } from "@/components/sudoku/SudokuGamePlay";
+import { ShareBoardDialog, LoadSharedBoardDialog } from "@/components/sudoku/ShareDialogs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import type { Difficulty } from "@/lib/sudoku/types";
-import { Play, GraduationCap } from "lucide-react";
+import type { Board, Difficulty } from "@/lib/sudoku/types";
+import { readShareFromUrl, clearShareFromUrl } from "@/lib/sudoku/share";
+import { solve } from "@/lib/sudoku/engine";
+import { Play, GraduationCap, Share2, ClipboardPaste } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const DIFFICULTIES: { id: Difficulty; key: string; descKey: string; accent: string }[] = [
@@ -27,6 +30,9 @@ export function SoloView() {
   const game = useSudokuGame("solo");
   const { state } = game;
 
+  const [shareOpen, setShareOpen] = useState(false);
+  const [loadOpen, setLoadOpen] = useState(false);
+
   // If a practice board was set (from Guide), load it once on mount.
   const consumedPractice = useRef(false);
   useEffect(() => {
@@ -43,6 +49,29 @@ export function SoloView() {
       setPracticeBoard(null);
     }
   }, [practiceBoard, state.status, game, setPracticeBoard]);
+
+  // Detect a shared board in the URL on mount.
+  const consumedShared = useRef(false);
+  useEffect(() => {
+    if (consumedShared.current) return;
+    consumedShared.current = true;
+    const code = readShareFromUrl();
+    if (code && state.status === "idle") {
+      // decode + solve lazily
+      import("@/lib/sudoku/share").then(({ decodeBoard }) => {
+        const decoded = decodeBoard(code);
+        if (!decoded) return;
+        const solution = solve(decoded.puzzle);
+        if (!solution) return;
+        game.startPractice(decoded.puzzle, solution, decoded.difficulty, `shared-${code.slice(0, 16)}`);
+        clearShareFromUrl();
+      });
+    }
+  }, [state.status, game]);
+
+  const handleLoadShared = (puzzle: Board, solution: Board, difficulty: Difficulty) => {
+    game.startPractice(puzzle, solution, difficulty, `shared-manual`);
+  };
 
   if (state.status === "idle") {
     return (
@@ -74,8 +103,23 @@ export function SoloView() {
           </div>
         </div>
 
-        {/* Guide practice shortcut */}
+        {/* Share / Load shared board */}
         <Card className="flex items-center gap-3 border-primary/30 bg-primary/5 p-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <Share2 className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium">{t("solo.shareTitle")}</p>
+            <p className="text-xs text-muted-foreground">{t("solo.shareDesc")}</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => setLoadOpen(true)} className="gap-1.5">
+            <ClipboardPaste className="h-3.5 w-3.5" />
+            {t("solo.loadShared")}
+          </Button>
+        </Card>
+
+        {/* Guide practice shortcut */}
+        <Card className="flex items-center gap-3 border-primary/20 p-4">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
             <GraduationCap className="h-5 w-5" />
           </div>
@@ -87,6 +131,8 @@ export function SoloView() {
             {t("nav.guide")}
           </Button>
         </Card>
+
+        <LoadSharedBoardDialog open={loadOpen} onOpenChange={setLoadOpen} onLoad={handleLoadShared} />
       </div>
     );
   }
@@ -99,12 +145,21 @@ export function SoloView() {
           {t("guide.practice")}
         </Badge>
       )}
-      <SudokuGamePlay
-        game={game}
-        backLabel={t("solo.backToLobby")}
-        onExit={() => { game.exit(); setRoute("lobby"); }}
-        onPlayAgain={() => game.startNew(state.difficulty)}
-        onNewGame={() => game.startNew(state.difficulty)}
+      <div className="space-y-4">
+        <SudokuGamePlay
+          game={game}
+          backLabel={t("solo.backToLobby")}
+          onExit={() => { game.exit(); setRoute("lobby"); }}
+          onPlayAgain={() => game.startNew(state.difficulty)}
+          onNewGame={() => game.startNew(state.difficulty)}
+          onShare={() => setShareOpen(true)}
+        />
+      </div>
+      <ShareBoardDialog
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        puzzle={state.puzzle}
+        difficulty={state.difficulty}
       />
     </div>
   );
