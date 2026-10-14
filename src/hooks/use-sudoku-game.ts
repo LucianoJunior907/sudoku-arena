@@ -19,6 +19,7 @@ import {
 import { useAppStore } from "@/lib/store/app-store";
 import type { GameMode } from "@/lib/progression/progression";
 import { computeDailyScore } from "@/lib/progression/progression";
+import { playSound, setSoundEnabled, unlockAudio } from "@/lib/audio/sounds";
 
 export type GameStatus = "idle" | "playing" | "paused" | "won";
 
@@ -44,6 +45,7 @@ export interface GameState {
   history: GameHistoryEntry[];
   redo: GameHistoryEntry[];
   startedAt: string;
+  showMistakes: boolean;
 }
 
 type Action =
@@ -57,6 +59,8 @@ type Action =
   | { type: "REDO" }
   | { type: "HINT"; index: number }
   | { type: "TOGGLE_NOTES_MODE" }
+  | { type: "AUTO_NOTES" }
+  | { type: "CHECK" }
   | { type: "PAUSE" }
   | { type: "RESUME" }
   | { type: "TICK" }
@@ -90,6 +94,7 @@ function freshState(): GameState {
     history: [],
     redo: [],
     startedAt: "",
+    showMistakes: false,
   };
 }
 
@@ -153,6 +158,24 @@ function reducer(state: GameState, action: Action): GameState {
       return { ...state, selectedIndex: action.index };
     case "TOGGLE_NOTES_MODE":
       return { ...state, notesMode: !state.notesMode };
+    case "AUTO_NOTES": {
+      if (state.status !== "playing") return state;
+      const notes = state.notes.map((n) => n.slice());
+      for (let i = 0; i < 81; i++) {
+        if (state.given[i] || state.hintCells.includes(i) || state.board[i] !== 0) {
+          continue;
+        }
+        const used = new Set<number>();
+        for (const p of PEERS[i]) {
+          if (state.board[p] !== 0) used.add(state.board[p]);
+        }
+        notes[i] = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter((n) => !used.has(n));
+      }
+      return { ...state, notes, showMistakes: false };
+    }
+    case "CHECK":
+      if (state.status !== "playing") return state;
+      return { ...state, showMistakes: true };
     case "PAUSE":
       if (state.status !== "playing") return state;
       return { ...state, status: "paused" };
@@ -228,6 +251,7 @@ function reducer(state: GameState, action: Action): GameState {
         history: [...state.history, entry],
         redo: [],
         status: won ? "won" : "playing",
+        showMistakes: false,
       };
     }
     case "TOGGLE_NOTE": {
@@ -292,6 +316,7 @@ function reducer(state: GameState, action: Action): GameState {
         notes,
         history: [...state.history, entry],
         redo: [],
+        showMistakes: false,
       };
     }
     case "HINT": {
@@ -346,6 +371,7 @@ function reducer(state: GameState, action: Action): GameState {
         history: [...state.history, entry],
         redo: [],
         status: won ? "won" : "playing",
+        showMistakes: false,
       };
     }
     case "UNDO": {
@@ -366,6 +392,7 @@ function reducer(state: GameState, action: Action): GameState {
         history: state.history.slice(0, -1),
         redo: [entry, ...state.redo],
         status: state.status === "won" ? "playing" : state.status,
+        showMistakes: false,
       };
     }
     case "REDO": {
@@ -387,6 +414,7 @@ function reducer(state: GameState, action: Action): GameState {
         history: [...state.history, entry],
         redo: state.redo.slice(1),
         status: won ? "won" : state.status,
+        showMistakes: false,
       };
     }
     default:
@@ -400,6 +428,8 @@ export interface XpResult {
   newLevel: number;
   unlockedCosmeticIds: string[];
   isRecord: boolean;
+  bonusXp?: number;
+  unlockedAchievements?: string[];
 }
 
 export function useSudokuGame(mode: GameMode = "solo") {
@@ -407,7 +437,13 @@ export function useSudokuGame(mode: GameMode = "solo") {
   const [state, dispatch] = useReducer(reducer, undefined, freshState);
   const recordGame = useAppStore((s) => s.recordGame);
   const recordDaily = useAppStore((s) => s.recordDaily);
+  const checkAchievements = useAppStore((s) => s.checkAchievements);
   const recordedRef = useRef(false);
+
+  // Sync the sound-enabled flag with settings.
+  useEffect(() => {
+    setSoundEnabled(settings.soundEnabled);
+  }, [settings.soundEnabled]);
 
   // Resume a saved game on first mount.
   const didInit = useRef(false);
@@ -447,6 +483,7 @@ export function useSudokuGame(mode: GameMode = "solo") {
   useEffect(() => {
     if (state.status === "won" && !recordedRef.current) {
       recordedRef.current = true;
+      playSound("win");
       const result = recordGame({
         mode: state.mode,
         difficulty: state.difficulty,
@@ -474,15 +511,35 @@ export function useSudokuGame(mode: GameMode = "solo") {
           score,
         });
       }
+      // Evaluate achievements (after stats + streak updated). Awards bonus XP.
+      const ach = checkAchievements({
+        mode: state.mode,
+        difficulty: state.difficulty,
+        elapsedSec: state.elapsedSec,
+        errors: state.mistakes,
+        hintsUsed: state.hintsUsed,
+        completed: true,
+      });
       setSavedGame(mode, null);
-      lastXpResultRef.current = result;
+      const finalResult = { ...result, bonusXp: ach.bonusXp, unlockedAchievements: ach.newlyUnlocked };
+      lastXpResultRef.current = finalResult;
       // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot side effect on win transition
-      setXpResult(result);
+      setXpResult(finalResult);
     }
-  }, [state.status, state.mode, state.difficulty, state.elapsedSec, state.mistakes, state.hintsUsed, state.dailyDate, recordGame, recordDaily, mode]);
+  }, [state.status, state.mode, state.difficulty, state.elapsedSec, state.mistakes, state.hintsUsed, state.dailyDate, recordGame, recordDaily, checkAchievements, mode]);
 
   // Derived
   const conflicts = useMemo(() => findConflicts(state.board), [state.board]);
+  const wrongCells = useMemo(() => {
+    if (!state.showMistakes) return new Set<number>();
+    const s = new Set<number>();
+    for (let i = 0; i < 81; i++) {
+      if (state.given[i] || state.hintCells.includes(i)) continue;
+      const v = state.board[i];
+      if (v !== 0 && v !== state.solution[i]) s.add(i);
+    }
+    return s;
+  }, [state.showMistakes, state.board, state.solution, state.given, state.hintCells]);
   const filled = useMemo(() => state.board.filter((v) => v !== 0).length, [state.board]);
   const totalEmpty = useMemo(
     () => state.puzzle.filter((v) => v === 0).length,
@@ -540,26 +597,37 @@ export function useSudokuGame(mode: GameMode = "solo") {
     [settings.maxHints, settings.maxErrors]
   );
 
-  const select = useCallback((index: number) => dispatch({ type: "SELECT", index }), []);
+  const select = useCallback((index: number) => { playSound("select"); dispatch({ type: "SELECT", index }); }, []);
   const setValue = useCallback(
     (value: number) => {
       if (state.notesMode) {
+        playSound("note");
         dispatch({ type: "TOGGLE_NOTE", index: state.selectedIndex, value });
       } else {
+        const prev = state.selectedIndex >= 0 ? state.board[state.selectedIndex] : 0;
+        if (value === prev) {
+          playSound("erase");
+        } else if (state.selectedIndex >= 0 && value !== state.solution[state.selectedIndex]) {
+          playSound("placeWrong");
+        } else {
+          playSound("place");
+        }
         dispatch({ type: "SET_VALUE", index: state.selectedIndex, value });
       }
     },
-    [state.notesMode, state.selectedIndex]
+    [state.notesMode, state.selectedIndex, state.board, state.solution]
   );
   const toggleNote = useCallback(
-    (value: number) => dispatch({ type: "TOGGLE_NOTE", index: state.selectedIndex, value }),
+    (value: number) => { playSound("note"); dispatch({ type: "TOGGLE_NOTE", index: state.selectedIndex, value }); },
     [state.selectedIndex]
   );
-  const erase = useCallback(() => dispatch({ type: "ERASE", index: state.selectedIndex }), [state.selectedIndex]);
-  const undo = useCallback(() => dispatch({ type: "UNDO" }), []);
-  const redo = useCallback(() => dispatch({ type: "REDO" }), []);
-  const hint = useCallback(() => dispatch({ type: "HINT", index: state.selectedIndex }), [state.selectedIndex]);
+  const erase = useCallback(() => { playSound("erase"); dispatch({ type: "ERASE", index: state.selectedIndex }); }, [state.selectedIndex]);
+  const undo = useCallback(() => { playSound("undo"); dispatch({ type: "UNDO" }); }, []);
+  const redo = useCallback(() => { playSound("redo"); dispatch({ type: "REDO" }); }, []);
+  const hint = useCallback(() => { playSound("hint"); dispatch({ type: "HINT", index: state.selectedIndex }); }, [state.selectedIndex]);
   const toggleNotesMode = useCallback(() => dispatch({ type: "TOGGLE_NOTES_MODE" }), []);
+  const autoNotes = useCallback(() => { playSound("note"); dispatch({ type: "AUTO_NOTES" }); }, []);
+  const check = useCallback(() => { playSound("select"); dispatch({ type: "CHECK" }); }, []);
   const pause = useCallback(() => dispatch({ type: "PAUSE" }), []);
   const resume = useCallback(() => dispatch({ type: "RESUME" }), []);
   const restart = useCallback(() => {
@@ -577,6 +645,7 @@ export function useSudokuGame(mode: GameMode = "solo") {
   return {
     state,
     conflicts,
+    wrongCells,
     progress,
     valueCounts,
     xpResult,
@@ -590,6 +659,8 @@ export function useSudokuGame(mode: GameMode = "solo") {
     redo,
     hint,
     toggleNotesMode,
+    autoNotes,
+    check,
     pause,
     resume,
     restart,

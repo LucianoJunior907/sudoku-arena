@@ -12,6 +12,7 @@ export interface SudokuBoardProps {
   given: boolean[];
   hintCells: number[];
   conflicts: Set<number>;
+  wrongCells: Set<number>;
   selectedIndex: number;
   settings: {
     highlightPeers: boolean;
@@ -27,6 +28,7 @@ export function SudokuBoard({
   given,
   hintCells,
   conflicts,
+  wrongCells,
   selectedIndex,
   settings,
   onSelect,
@@ -63,6 +65,7 @@ export function SudokuBoard({
           const isPeer = peerSet.has(i);
           const isSame = sameSet.has(i);
           const isConflict = settings.autoCheck && conflicts.has(i);
+          const isWrong = wrongCells.has(i);
 
           // thick borders between 3x3 boxes
           const borderClasses = cn(
@@ -82,6 +85,7 @@ export function SudokuBoard({
               isPeer={isPeer}
               isSame={isSame}
               isConflict={isConflict}
+              isWrong={isWrong}
               borderClasses={borderClasses}
               onClick={() => onSelect(i)}
               ariaLabel={`${t("board.cell")} ${row + 1}, ${col + 1}${value ? `, ${t("board.value")} ${value}` : `, ${t("board.empty")}`}`}
@@ -102,6 +106,7 @@ function Cell({
   isPeer,
   isSame,
   isConflict,
+  isWrong,
   borderClasses,
   onClick,
   ariaLabel,
@@ -114,18 +119,20 @@ function Cell({
   isPeer: boolean;
   isSame: boolean;
   isConflict: boolean;
+  isWrong: boolean;
   borderClasses: string;
   onClick: () => void;
   ariaLabel: string;
 }) {
   const bg = cn(
-    "bg-[var(--cell-bg)]",
-    isGiven && "bg-[var(--cell-bg-given)]",
+    "bg-[var(--cell-bg)] hover:bg-[var(--cell-bg-peer)]",
+    isGiven && "bg-[var(--cell-bg-given)] hover:bg-[var(--cell-bg-given)]",
     isPeer && "bg-[var(--cell-bg-peer)]",
     isSame && !isSelected && "bg-[var(--cell-bg-same)]",
-    isSelected && "bg-[var(--cell-bg-selected)]",
-    isConflict && "bg-[var(--cell-bg-error)]",
-    isHint && !isConflict && "bg-[var(--cell-bg-hint)]"
+    isSelected && "bg-[var(--cell-bg-selected)] hover:bg-[var(--cell-bg-selected)]",
+    isWrong && "bg-[var(--cell-bg-error)] hover:bg-[var(--cell-bg-error)]",
+    isConflict && "bg-[var(--cell-bg-error)] hover:bg-[var(--cell-bg-error)]",
+    isHint && !isConflict && !isWrong && "bg-[var(--cell-bg-hint)] hover:bg-[var(--cell-bg-hint)]"
   );
 
   const text = cn(
@@ -135,7 +142,7 @@ function Cell({
       ? "text-foreground"
       : isHint
       ? "text-[var(--warning)]"
-      : isConflict
+      : isConflict || isWrong
       ? "text-[var(--destructive)]"
       : "text-primary",
     isSelected && "text-glow"
@@ -148,10 +155,10 @@ function Cell({
       aria-label={ariaLabel}
       onClick={onClick}
       className={cn(
-        "relative flex aspect-square items-center justify-center border border-[var(--cell-border)] transition-colors duration-100",
+        "relative flex aspect-square items-center justify-center border border-[var(--cell-border)] transition-colors duration-100 cursor-pointer",
         bg,
         borderClasses,
-        isSelected && "z-10 animate-pulse-ring"
+        isSelected && "z-10 animate-pulse-ring ring-2 ring-inset ring-[var(--cell-border-thick)]"
       )}
     >
       {value !== 0 ? (

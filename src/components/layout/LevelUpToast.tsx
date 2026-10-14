@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Sparkles, X, Star } from "lucide-react";
 import { COSMETICS } from "@/lib/progression/progression";
 import { cn } from "@/lib/utils";
+import { playSound } from "@/lib/audio/sounds";
 
 export function LevelUpToast() {
   const levelUps = useAppStore((s) => s.levelUps);
@@ -17,6 +18,7 @@ export function LevelUpToast() {
 
   useEffect(() => {
     if (!latest) return;
+    playSound("levelUp");
     const timer = setTimeout(() => dismiss(latest.id), 7000);
     return () => clearTimeout(timer);
   }, [latest, dismiss]);

@@ -221,3 +221,33 @@ Stage Summary:
 - Amigos, convites, chat, denúncias, bloqueio multiusuário.
 - Desafio diário oficial (seed do servidor, consistência global).
 - Validação de movimentos, solução secreta, pontuação/rating no servidor, controle de salas, sincronização, prevenção de duplicatas, rate limiting, persistência compartilhada.
+
+---
+Task ID: 7 (cron webDevReview round 1)
+Agent: main
+Task: QA pass + new features (sound, achievements, charts, solo tools) + styling polish.
+
+## Current project status / assessment
+- Project was complete through Etapa 6 (Solo/Daily/Guide/Profile/History/Settings + Duo/Ranked/Friends/Leaderboard needs-backend UIs + i18n pt-BR/en + light/dark). Dev server healthy on :3000, lint clean.
+- QA pass via agent-browser: confirmed conflict highlighting, notes (9-span grid), mistake counting (1/5 after wrong placement), autosave/resume, dark theme, English i18n. No bugs found in core flows.
+
+## Goals / completed modifications / verification results
+This round added 4 new feature areas + styling polish (mandatory: more features + more styling detail):
+
+1. **Sound effects** (lib/audio/sounds.ts — Web Audio API, no asset files): tones for select/place/placeWrong/erase/note/undo/redo/hint/win/levelUp/tick/error. Wired into useSudokuGame callbacks + win effect + LevelUpToast. `setSoundEnabled` synced from `settings.soundEnabled` (the previously-no-op audio setting now actually produces sound). Verified: win sound + level-up sound play.
+
+2. **Achievements system** (lib/progression/achievements.ts): 15 achievements across 4 categories (solo/skill/daily/level) — first_win, wins_10/50, flawless, no_hints, speed_easy/medium, expert_win, all_difficulties, daily_streak_3/7/30, level_5/10/20. Each has bilingual name/desc, icon, xpReward, pure `check(ctx)`. Store: `unlockedAchievements` (persisted), `achievementToasts` queue, `checkAchievements(lastGame)` action (awards bonus XP + re-derives level + pushes toasts). Hook calls it after recordGame+recordDaily. New `AchievementsView` (nav item "Conquistas/Achievements") with progress overview + category-grouped cards + lock/unlock states. New `AchievementToast` (bottom-fixed, auto-dismiss 8s) added to Providers. WinScreen extended to show unlocked achievements + bonus XP. Verified end-to-end: first easy win (60s, 0 errors, 0 hints) unlocked 4 achievements (Primeira Vitória +50, Impecável +150, Autossuficiente +100, Velocista +100 = +400 bonus XP); win screen listed all 4 + bonus XP; achievement toast appeared; Achievements view shows 4/15 progress after reload.
+
+3. **Profile statistics charts** (components/profile/ProfileCharts.tsx, recharts): win-rate-by-difficulty bar chart (color-coded per difficulty) + cumulative-XP-over-time area chart with gradient fill. Embedded in ProfileView. Empty states when no data. Verified: 2 charts render with 1 win recorded.
+
+4. **Solo tools** — Auto-notes (AUTO_NOTES reducer: fills candidate notes for all empty cells from peer elimination) + Check (CHECK reducer: sets `showMistakes` flag; clears on any board mutation). New `wrongCells` derived set in hook; SudokuBoard extended with `wrongCells` prop + wrong-cell error styling. Toolbar with Wand2/SearchCheck buttons in SudokuGamePlay. Keyboard shortcuts A (auto-notes) + C (check). Verified: pressing A filled 46 cells with notes; pressing C highlighted wrong cells; both no errors.
+
+5. **Styling polish**: SudokuBoard cells gained hover states (peer bg on hover, sticky hover for given/selected/conflict/hint), selected cell inset ring, `cursor-pointer`. Lobby hero enhanced with arena-grid pattern overlay, blurred color glows, larger display name, gradient level badge, pct label, shadow buttons. Lobby StatCards gained group hover (scale icon, glow, border highlight). Selected cell uses inset ring + pulse.
+
+Verification: ESLint clean throughout; agent-browser confirmed all features work; no runtime/console errors.
+
+## Unresolved issues / risks / next-phase recommendations
+- Sound context requires a user gesture to unlock on some browsers — handled by lazy creation in user-gesture callbacks, but the very first "win"/"levelup" sound (effect-triggered, not gesture) could be silent if no prior gesture occurred. In practice the user always interacts before winning, so fine.
+- Achievements are local-only and user-resettable (consistent with the local-phase stance; not an official system).
+- Recommended next round: (a) per-cell "candidate toggle" highlight when hovering a number-pad digit (highlight all cells containing/able-to-contain that digit); (b) a "daily calendar" heat-map view of streak; (c) board theme variants (cosmetic beyond light/dark); (d) a practice mode from Guide that loads the technique's exact mini-board into Solo.
+- The scheduled 15-min cron (id 457699) continues to drive autonomous QA + feature work.

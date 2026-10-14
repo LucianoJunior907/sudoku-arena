@@ -36,6 +36,7 @@ const translations = {
     "nav.history": "Histórico",
     "nav.leaderboard": "Classificação",
     "nav.settings": "Configurações",
+    "nav.achievements": "Conquistas",
     "nav.group.play": "Jogar",
     "nav.group.learn": "Aprender",
     "nav.group.community": "Comunidade",
@@ -107,7 +108,9 @@ const translations = {
     "solo.boardComplete": "Tabuleiro concluído!",
     "solo.hasErrors": "Existem erros no tabuleiro",
     "solo.errorsExceeded": "Limite de erros atingido",
-    "solo.shortcuts": "Atalhos: 1-9 · Backspace · N · H · P · Ctrl+Z",
+    "solo.shortcuts": "Atalhos: 1-9 · Backspace · N · H · A · C · P · Ctrl+Z",
+    "solo.autoNotes": "Anotar",
+    "solo.check": "Verificar",
 
     // Guide
     "guide.title": "Guia de Técnicas",
@@ -236,6 +239,20 @@ const translations = {
     "ranked.yourRating": "Seu rating",
     "ranked.yourDivision": "Sua divisão",
 
+    // Achievements
+    "achievements.title": "Conquistas",
+    "achievements.subtitle": "Desbloqueie marcos e ganhe XP bonus.",
+    "achievements.progress": "Progresso",
+    "achievements.unlocked": "Desbloqueadas",
+    "achievements.locked": "Pendentes",
+    "achievements.xpReward": "Recompensa",
+    "achievements.cat.solo": "Solo",
+    "achievements.cat.daily": "Diário",
+    "achievements.cat.level": "Nível",
+    "achievements.cat.skill": "Habilidade",
+    "achievements.empty": "Jogue para desbloquear conquistas!",
+    "achievements.bonusXp": "XP bonus",
+
     // Settings
     "settings.title": "Configurações",
     "settings.appearance": "Aparência",
@@ -320,6 +337,7 @@ const translations = {
     "nav.history": "History",
     "nav.leaderboard": "Leaderboard",
     "nav.settings": "Settings",
+    "nav.achievements": "Achievements",
     "nav.group.play": "Play",
     "nav.group.learn": "Learn",
     "nav.group.community": "Community",
@@ -388,7 +406,9 @@ const translations = {
     "solo.boardComplete": "Board complete!",
     "solo.hasErrors": "There are errors on the board",
     "solo.errorsExceeded": "Error limit reached",
-    "solo.shortcuts": "Shortcuts: 1-9 · Backspace · N · H · P · Ctrl+Z",
+    "solo.shortcuts": "Shortcuts: 1-9 · Backspace · N · H · A · C · P · Ctrl+Z",
+    "solo.autoNotes": "Auto-notes",
+    "solo.check": "Check",
 
     "guide.title": "Techniques Guide",
     "guide.subtitle": "Learn to solve Sudoku from scratch to advanced.",
@@ -508,6 +528,20 @@ const translations = {
     "ranked.needsBackend": "Ranked matches require matchmaking and server-side validation. This screen is prepared for the next phase.",
     "ranked.yourRating": "Your rating",
     "ranked.yourDivision": "Your division",
+
+    // Achievements
+    "achievements.title": "Achievements",
+    "achievements.subtitle": "Unlock milestones and earn bonus XP.",
+    "achievements.progress": "Progress",
+    "achievements.unlocked": "Unlocked",
+    "achievements.locked": "Locked",
+    "achievements.xpReward": "Reward",
+    "achievements.cat.solo": "Solo",
+    "achievements.cat.daily": "Daily",
+    "achievements.cat.level": "Level",
+    "achievements.cat.skill": "Skill",
+    "achievements.empty": "Play to unlock achievements!",
+    "achievements.bonusXp": "Bonus XP",
 
     "settings.title": "Settings",
     "settings.appearance": "Appearance",

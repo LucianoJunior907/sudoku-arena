@@ -11,7 +11,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { formatTime } from "@/lib/sudoku/saved-game";
-import { Clock, AlertTriangle, Pause, Play, RotateCcw, Plus, ChevronLeft } from "lucide-react";
+import { Clock, AlertTriangle, Pause, Play, RotateCcw, Plus, ChevronLeft, Wand2, SearchCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -64,6 +64,8 @@ export function SudokuGamePlay({
         if (state.status === "playing") game.pause();
         else if (state.status === "paused") game.resume();
       }
+      else if (e.key === "a" || e.key === "A") game.autoNotes();
+      else if (e.key === "c" || e.key === "C") game.check();
       else if ((e.key === "z" || e.key === "Z") && (e.ctrlKey || e.metaKey) && e.shiftKey) { e.preventDefault(); game.redo(); }
       else if ((e.key === "z" || e.key === "Z") && (e.ctrlKey || e.metaKey)) { e.preventDefault(); game.undo(); }
       else if (e.key === "ArrowUp") { e.preventDefault(); moveSelection(0, -1); }
@@ -141,6 +143,18 @@ export function SudokuGamePlay({
         </div>
       )}
 
+      {/* Tools row */}
+      <div className="flex items-center gap-2">
+        <Button variant="outline" size="sm" onClick={game.autoNotes} className="gap-1.5">
+          <Wand2 className="h-3.5 w-3.5 text-primary" />
+          <span className="hidden sm:inline">{t("solo.autoNotes")}</span>
+        </Button>
+        <Button variant="outline" size="sm" onClick={game.check} className="gap-1.5">
+          <SearchCheck className="h-3.5 w-3.5 text-[var(--warning)]" />
+          <span className="hidden sm:inline">{t("solo.check")}</span>
+        </Button>
+      </div>
+
       {/* Board + pad */}
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
         <div className="relative">
@@ -150,6 +164,7 @@ export function SudokuGamePlay({
             given={state.given}
             hintCells={state.hintCells}
             conflicts={game.conflicts}
+            wrongCells={game.wrongCells}
             selectedIndex={state.selectedIndex}
             settings={{
               highlightPeers: settings.highlightPeers,

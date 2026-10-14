@@ -5,6 +5,7 @@ import { useEffect, type ReactNode } from "react";
 import { useAppStore } from "@/lib/store/app-store";
 import { OnboardingDialog } from "@/components/layout/OnboardingDialog";
 import { LevelUpToast } from "@/components/layout/LevelUpToast";
+import { AchievementToast } from "@/components/layout/AchievementToast";
 
 export function Providers({ children }: { children: ReactNode }) {
   const hydrate = useAppStore((s) => s.hydrate);
@@ -20,6 +21,7 @@ export function Providers({ children }: { children: ReactNode }) {
       {children}
       {hydrated && !onboarding.completed && <OnboardingDialog />}
       {hydrated && <LevelUpToast />}
+      {hydrated && <AchievementToast />}
     </ThemeProvider>
   );
 }

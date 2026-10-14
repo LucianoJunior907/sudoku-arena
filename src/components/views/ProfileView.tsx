@@ -16,6 +16,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Avatar } from "@/components/common/Avatar";
+import { ProfileCharts } from "@/components/profile/ProfileCharts";
 import {
   COSMETICS,
   levelFromXp,
@@ -182,6 +183,11 @@ export function ProfileView() {
         <div className="grid gap-4 lg:grid-cols-2">
           <ModeStatsCard title={t("nav.solo")} agg={soloAgg} t={t} />
           <ModeStatsCard title={t("nav.daily")} agg={dailyAgg} t={t} />
+        </div>
+
+        {/* Visual charts */}
+        <div className="mt-4">
+          <ProfileCharts />
         </div>
 
         {/* Per-difficulty breakdown for solo */}
