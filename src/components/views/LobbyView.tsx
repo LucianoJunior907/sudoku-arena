@@ -56,22 +56,25 @@ export function LobbyView() {
     <div className="space-y-6">
       {/* Hero */}
       <Card className="relative overflow-hidden border-primary/20">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-[var(--warning)]/5" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-[var(--warning)]/10" />
+        <div className="absolute inset-0 bg-arena-grid opacity-40" />
+        <div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-primary/20 blur-3xl" />
+        <div className="absolute -bottom-10 left-1/3 h-32 w-32 rounded-full bg-[var(--warning)]/15 blur-3xl" />
         <div className="relative flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm text-muted-foreground">{t("lobby.welcome")},</p>
-            <h2 className="text-2xl font-bold">{profile.displayName}</h2>
+            <h2 className="text-3xl font-bold tracking-tight">{profile.displayName}</h2>
             <p className="mt-1 text-sm text-muted-foreground">{t("lobby.subtitle")}</p>
             <div className="mt-4 flex flex-wrap gap-2">
-              <Button onClick={() => setRoute("solo")}>
+              <Button onClick={() => setRoute("solo")} size="lg" className="shadow-md">
                 <Play className="mr-1.5 h-4 w-4" />
                 {t("lobby.quickPlay")}
               </Button>
-              <Button variant="secondary" onClick={() => setRoute("daily")}>
+              <Button variant="secondary" onClick={() => setRoute("daily")} size="lg">
                 <Sparkles className="mr-1.5 h-4 w-4" />
                 {t("lobby.dailyChallenge")}
               </Button>
-              <Button variant="outline" onClick={() => setRoute("guide")}>
+              <Button variant="outline" onClick={() => setRoute("guide")} size="lg">
                 <GraduationCap className="mr-1.5 h-4 w-4" />
                 {t("lobby.learnTechniques")}
               </Button>
@@ -79,11 +82,12 @@ export function LobbyView() {
           </div>
 
           {/* Level card */}
-          <Card className="w-full max-w-xs p-4">
+          <Card className="w-full max-w-xs border-primary/20 bg-card/80 p-4 backdrop-blur">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold">
-                  {level}
+                <div className="relative flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-[var(--chart-4)] text-primary-foreground font-bold shadow-md">
+                  <span className="relative z-10">{level}</span>
+                  <div className="absolute inset-0 rounded-xl bg-white/10" />
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">{t("lobby.level")}</p>
@@ -92,10 +96,11 @@ export function LobbyView() {
               </div>
               <div className="text-right">
                 <p className="text-xs text-muted-foreground">{t("lobby.xp")}</p>
-                <p className="text-sm font-semibold">{info.intoLevel}/{info.neededForLevel}</p>
+                <p className="text-sm font-semibold tabular-nums">{info.intoLevel}/{info.neededForLevel}</p>
               </div>
             </div>
             <Progress value={pct} className="mt-3 h-2" />
+            <p className="mt-1.5 text-right text-[10px] text-muted-foreground">{pct}%</p>
           </Card>
         </div>
       </Card>
@@ -219,12 +224,13 @@ export function LobbyView() {
 
 function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <Card className="p-4">
-      <div className="flex items-center gap-2">
-        {icon}
+    <Card className="group relative overflow-hidden p-4 transition-all hover:border-primary/30 hover:shadow-md">
+      <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-primary/5 opacity-0 transition-opacity group-hover:opacity-100" />
+      <div className="relative flex items-center gap-2">
+        <span className="transition-transform group-hover:scale-110">{icon}</span>
         <span className="text-xs text-muted-foreground">{label}</span>
       </div>
-      <p className="mt-1.5 text-xl font-bold">{value}</p>
+      <p className="relative mt-1.5 text-xl font-bold tabular-nums">{value}</p>
     </Card>
   );
 }

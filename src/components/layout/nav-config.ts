@@ -10,6 +10,7 @@ import {
   History,
   BarChart3,
   Settings,
+  Award,
   type LucideIcon,
 } from "lucide-react";
 import type { RouteId } from "@/lib/store/app-store";
@@ -39,6 +40,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: "daily", labelKey: "nav.daily", icon: CalendarDays, group: "learn" },
   { id: "leaderboard", labelKey: "nav.leaderboard", icon: BarChart3, group: "community", online: true },
   { id: "friends", labelKey: "nav.friends", icon: UserPlus, group: "community", online: true },
+  { id: "achievements", labelKey: "nav.achievements", icon: Award, group: "account" },
   { id: "history", labelKey: "nav.history", icon: History, group: "account" },
   { id: "profile", labelKey: "nav.profile", icon: UserCircle, group: "account" },
   { id: "settings", labelKey: "nav.settings", icon: Settings, group: "account" },

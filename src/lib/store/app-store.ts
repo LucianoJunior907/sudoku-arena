@@ -11,6 +11,7 @@ import {
   computeXp,
   type GameMode,
 } from "@/lib/progression/progression";
+import { ACHIEVEMENTS, evaluateAchievements, type AchievementContext } from "@/lib/progression/achievements";
 import type { Division } from "@/lib/contracts/persistence";
 
 /* ------------------------------------------------------------------ */
@@ -28,6 +29,7 @@ export type RouteId =
   | "friends"
   | "history"
   | "leaderboard"
+  | "achievements"
   | "settings";
 
 export type ThemePref = "light" | "dark" | "system";
@@ -172,7 +174,15 @@ const KEYS = {
   onboarding: "onboarding",
   savedGame: "saved-game",
   streak: "streak",
+  achievements: "achievements",
 };
+
+export interface AchievementToast {
+  id: string;
+  achievementId: string;
+  xpReward: number;
+  createdAt: number;
+}
 
 interface AppState {
   // navigation
@@ -207,6 +217,12 @@ interface AppState {
   // level up events (transient queue)
   levelUps: LevelUpEvent[];
   dismissLevelUp: (id: string) => void;
+
+  // achievements
+  unlockedAchievements: string[];
+  achievementToasts: AchievementToast[];
+  dismissAchievementToast: (id: string) => void;
+  checkAchievements: (lastGame: RecordGameInput) => { newlyUnlocked: string[]; bonusXp: number };
 
   // derived
   level: number;
@@ -289,6 +305,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   streak: { count: 0, lastDate: null },
   levelUps: [],
   dismissLevelUp: (id) => set({ levelUps: get().levelUps.filter((l) => l.id !== id) }),
+  unlockedAchievements: [],
+  achievementToasts: [],
+  dismissAchievementToast: (id) =>
+    set({ achievementToasts: get().achievementToasts.filter((a) => a.id !== id) }),
   level: 1,
 
   hydrate: () => {
@@ -299,6 +319,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const dailyRecords = localPersistence.get<DailyRecord[]>(KEYS.daily, []);
     const onboarding = localPersistence.get<OnboardingState>(KEYS.onboarding, { completed: false });
     const streak = localPersistence.get(KEYS.streak, { count: 0, lastDate: null });
+    const unlockedAchievements = localPersistence.get<string[]>(KEYS.achievements, []);
     const level = levelFromXp(profile.totalXp).level;
     set({
       settings: { ...DEFAULT_SETTINGS, ...settings },
@@ -308,9 +329,82 @@ export const useAppStore = create<AppState>((set, get) => ({
       dailyRecords,
       onboarding,
       streak,
+      unlockedAchievements,
       level,
       hydrated: true,
     });
+  },
+
+  checkAchievements: (lastGame) => {
+    const stats = get().stats;
+    const level = get().level;
+    const streakCount = get().streak.count;
+    const already = get().unlockedAchievements;
+    const ctx: AchievementContext = {
+      stats,
+      level,
+      streakCount,
+      lastGame: {
+        mode: lastGame.mode,
+        difficulty: lastGame.difficulty,
+        elapsedSec: lastGame.elapsedSec,
+        errors: lastGame.errors,
+        hintsUsed: lastGame.hintsUsed,
+        completed: lastGame.completed,
+      },
+    };
+    const newly = evaluateAchievements(ctx, already);
+    if (newly.length === 0) return { newlyUnlocked: [], bonusXp: 0 };
+
+    const bonusXp = newly.reduce((sum, id) => {
+      const a = ACHIEVEMENTS.find((x) => x.id === id);
+      return sum + (a?.xpReward ?? 0);
+    }, 0);
+
+    const updatedUnlocked = [...already, ...newly];
+    localPersistence.set(KEYS.achievements, updatedUnlocked);
+
+    // achievement toasts
+    const achievementToasts = [
+      ...get().achievementToasts,
+      ...newly.map((id, i) => ({
+        id: `ach-${Date.now()}-${i}`,
+        achievementId: id,
+        xpReward: ACHIEVEMENTS.find((a) => a.id === id)?.xpReward ?? 0,
+        createdAt: Date.now() + i,
+      })),
+    ];
+
+    // award bonus XP + possibly level up
+    const prevProfile = get().profile;
+    const prevLevel = levelFromXp(prevProfile.totalXp).level;
+    const newTotalXp = prevProfile.totalXp + bonusXp;
+    const newLevelInfo = levelFromXp(newTotalXp);
+    const profile = { ...prevProfile, totalXp: newTotalXp };
+    localPersistence.set(KEYS.profile, profile);
+
+    const levelUps = [...get().levelUps];
+    if (newLevelInfo.level > prevLevel) {
+      const prevUnlockedCos = new Set(unlockedCosmeticsForLevel(prevLevel).map((c) => c.id));
+      const nowUnlockedCos = unlockedCosmeticsForLevel(newLevelInfo.level)
+        .filter((c) => !prevUnlockedCos.has(c.id))
+        .map((c) => c.id);
+      levelUps.push({
+        id: `lu-${Date.now()}-ach`,
+        newLevel: newLevelInfo.level,
+        unlockedCosmeticIds: nowUnlockedCos,
+        createdAt: Date.now(),
+      });
+    }
+
+    set({
+      unlockedAchievements: updatedUnlocked,
+      achievementToasts,
+      profile,
+      level: newLevelInfo.level,
+      levelUps,
+    });
+    return { newlyUnlocked: newly, bonusXp };
   },
 
   recordGame: (input) => {
@@ -430,6 +524,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       streak: { count: 0, lastDate: null },
       level: 1,
       levelUps: [],
+      unlockedAchievements: [],
+      achievementToasts: [],
     });
   },
 

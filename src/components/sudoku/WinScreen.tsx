@@ -9,6 +9,7 @@ import { useI18n } from "@/lib/i18n/context";
 import { useAppStore } from "@/lib/store/app-store";
 import type { Difficulty } from "@/lib/sudoku/types";
 import { formatTime } from "@/lib/sudoku/saved-game";
+import { ACHIEVEMENTS } from "@/lib/progression/achievements";
 
 export function WinScreen({
   difficulty,
@@ -27,7 +28,7 @@ export function WinScreen({
   onPlayAgain: () => void;
   onBack: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const level = useAppStore((s) => s.level);
   const stats = useAppStore((s) => s.stats);
 
@@ -100,9 +101,32 @@ export function WinScreen({
             <Stat
               icon={<Sparkles className="h-4 w-4 text-[var(--chart-4)]" />}
               label={t("solo.xpEarned")}
-              value={`+${xpResult?.xp ?? 0}`}
+              value={`+${xpResult?.xp ?? 0}${xpResult?.bonusXp ? ` +${xpResult.bonusXp}` : ""}`}
             />
           </div>
+
+          {xpResult?.unlockedAchievements && xpResult.unlockedAchievements.length > 0 && (
+            <div className="mt-4 w-full rounded-lg border border-[var(--warning)]/30 bg-[var(--warning)]/5 p-3 text-center">
+              <p className="flex items-center justify-center gap-1.5 text-sm font-semibold text-[var(--warning)]">
+                <Trophy className="h-4 w-4" />
+                {t("achievements.unlocked")}
+              </p>
+              <div className="mt-2 space-y-1">
+                {xpResult.unlockedAchievements.map((id) => {
+                  const ach = ACHIEVEMENTS.find((a) => a.id === id);
+                  if (!ach) return null;
+                  const Icon = ach.icon;
+                  return (
+                    <div key={id} className="flex items-center justify-center gap-1.5 text-xs">
+                      <Icon className="h-3.5 w-3.5 text-[var(--warning)]" />
+                      <span className="font-medium">{ach.name[locale]}</span>
+                      <span className="text-muted-foreground">+{ach.xpReward} XP</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {xpResult?.leveledUp && (
             <div className="mt-4 w-full rounded-lg border border-primary/30 bg-primary/5 p-3 text-center">
