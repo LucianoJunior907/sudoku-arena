@@ -44,6 +44,7 @@ export interface AppSettings {
   highlightPeers: boolean;
   highlightSame: boolean;
   showTimer: boolean;
+  showCandidateCount: boolean;
   maxErrors: number; // 0 = unlimited
   maxHints: number;
   soundEnabled: boolean;
@@ -60,6 +61,7 @@ export interface LocalProfile {
   // local-only rating preview (not official)
   rating: number;
   createdAt: string;
+  streakFreezes: number; // consumable: protects daily streak on a missed day
 }
 
 export interface ModeStat {
@@ -125,6 +127,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   highlightPeers: true,
   highlightSame: true,
   showTimer: true,
+  showCandidateCount: false,
   maxErrors: 5,
   maxHints: 3,
   soundEnabled: true,
@@ -164,6 +167,7 @@ function defaultProfile(): LocalProfile {
     totalXp: 0,
     rating: 0,
     createdAt: new Date().toISOString(),
+    streakFreezes: 0,
   };
 }
 
@@ -413,6 +417,17 @@ export const useAppStore = create<AppState>((set, get) => ({
     const newTotalXp = prevProfile.totalXp + bonusXp;
     const newLevelInfo = levelFromXp(newTotalXp);
     const profile = { ...prevProfile, totalXp: newTotalXp };
+
+    // award streak freezes on crossing certain level thresholds
+    if (newLevelInfo.level > prevLevel) {
+      const thresholds = [3, 7, 14];
+      const crossed = thresholds.filter(
+        (th) => prevLevel < th && newLevelInfo.level >= th
+      );
+      if (crossed.length > 0) {
+        profile.streakFreezes = (profile.streakFreezes ?? 0) + crossed.length;
+      }
+    }
     localPersistence.set(KEYS.profile, profile);
 
     const levelUps = [...get().levelUps];
@@ -489,6 +504,17 @@ export const useAppStore = create<AppState>((set, get) => ({
     // profile xp
     const profile = { ...prevProfile, totalXp: newTotalXp };
 
+    // award streak freezes on crossing certain level thresholds
+    if (leveledUp) {
+      const thresholds = [3, 7, 14];
+      const crossed = thresholds.filter(
+        (th) => prevLevel < th && newLevelInfo.level >= th
+      );
+      if (crossed.length > 0) {
+        profile.streakFreezes = (profile.streakFreezes ?? 0) + crossed.length;
+      }
+    }
+
     // level up events
     const levelUps = [...get().levelUps];
     if (leveledUp) {
@@ -513,6 +539,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     // streak logic
     const today = input.date;
     const streak = { ...get().streak };
+    let consumedFreeze = false;
     if (streak.lastDate !== today) {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
@@ -520,7 +547,18 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (streak.lastDate === yKey) {
         streak.count += 1;
       } else {
-        streak.count = 1;
+        // Streak would reset — check if the user has a streak freeze.
+        const profile = get().profile;
+        if ((profile.streakFreezes ?? 0) > 0 && streak.count > 0) {
+          // Consume a freeze to preserve the streak.
+          consumedFreeze = true;
+          streak.count += 1;
+          const updatedProfile = { ...profile, streakFreezes: profile.streakFreezes - 1 };
+          localPersistence.set(KEYS.profile, updatedProfile);
+          set({ profile: updatedProfile });
+        } else {
+          streak.count = 1;
+        }
       }
       streak.lastDate = today;
     }

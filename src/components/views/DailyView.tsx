@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatTime } from "@/lib/sudoku/saved-game";
 import type { Difficulty } from "@/lib/sudoku/types";
-import { CalendarDays, Flame, Trophy, Clock, Play, Info, Sparkles } from "lucide-react";
+import { CalendarDays, Flame, Trophy, Clock, Play, Info, Sparkles, Snowflake } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const DIFFICULTIES: { id: Difficulty; key: string; accent: string }[] = [
@@ -36,6 +36,7 @@ export function DailyView() {
   const { t } = useI18n();
   const setRoute = useAppStore((s) => s.setRoute);
   const streak = useAppStore((s) => s.streak);
+  const profile = useAppStore((s) => s.profile);
   const dailyRecords = useAppStore((s) => s.dailyRecords);
   const game = useSudokuGame("daily");
   const { state } = game;
@@ -107,6 +108,12 @@ export function DailyView() {
             <span className="text-xs">{t("daily.streak")}</span>
           </div>
           <p className="mt-1 text-lg font-bold">{streak.count} {t("lobby.days")}</p>
+          {profile.streakFreezes > 0 && (
+            <p className="mt-1 flex items-center gap-1 text-xs text-[var(--chart-5)]">
+              <Snowflake className="h-3 w-3" />
+              {profile.streakFreezes} {t("daily.streakFreeze")}
+            </p>
+          )}
         </Card>
         <Card className="p-4">
           <div className="flex items-center gap-2 text-muted-foreground">

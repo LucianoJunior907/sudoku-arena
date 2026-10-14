@@ -34,6 +34,7 @@ const TECHNIQUE_LABEL: Record<SolverSuggestion["technique"], { pt: string; en: s
   "naked-single": { pt: "Naked Single", en: "Naked Single" },
   "hidden-single": { pt: "Hidden Single", en: "Hidden Single" },
   "naked-single-in-block": { pt: "Naked Single (bloco)", en: "Naked Single (block)" },
+  "naked-pair": { pt: "Naked Pair", en: "Naked Pair" },
   solver: { pt: "Solver", en: "Solver" },
 };
 
@@ -41,6 +42,7 @@ const TECHNIQUE_COLOR: Record<SolverSuggestion["technique"], string> = {
   "naked-single": "border-primary/40 text-primary bg-primary/5",
   "hidden-single": "border-[var(--warning)]/40 text-[var(--warning)] bg-[var(--warning)]/5",
   "naked-single-in-block": "border-primary/40 text-primary bg-primary/5",
+  "naked-pair": "border-[var(--chart-5)]/40 text-[var(--chart-5)] bg-[var(--chart-5)]/5",
   solver: "border-[var(--chart-4)]/40 text-[var(--chart-4)] bg-[var(--chart-4)]/5",
 };
 

@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import type { Board, Notes } from "@/lib/sudoku/types";
 import { indexToRc, PEERS } from "@/lib/sudoku/types";
+import { candidatesFor as computeCandidates } from "@/lib/sudoku/solver-hint";
 import { useT } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +21,7 @@ export interface SudokuBoardProps {
     highlightPeers: boolean;
     highlightSame: boolean;
     autoCheck: boolean;
+    showCandidateCount: boolean;
   };
   onSelect: (index: number) => void;
 }
@@ -66,6 +68,14 @@ export function SudokuBoard({
     return s;
   }, [highlightDigit, board, notes]);
 
+  // Per-cell candidate counts (for the showCandidateCount display).
+  const candidateCounts = useMemo(() => {
+    if (!settings.showCandidateCount) return new Array(81).fill(0);
+    return Array.from({ length: 81 }, (_, i) =>
+      board[i] === 0 ? computeCandidates(board, i).length : 0
+    );
+  }, [board, settings.showCandidateCount]);
+
   return (
     <div
       className="relative mx-auto aspect-square w-full max-w-[min(92vw,30rem)] select-none touch-manipulation"
@@ -107,6 +117,8 @@ export function SudokuBoard({
               isWrong={isWrong}
               isCandidate={isCandidate}
               highlightDigit={highlightVal}
+              candidateCount={candidateCounts[i]}
+              showCandidateCount={settings.showCandidateCount}
               borderClasses={borderClasses}
               onClick={() => onSelect(i)}
               ariaLabel={`${t("board.cell")} ${row + 1}, ${col + 1}${value ? `, ${t("board.value")} ${value}` : `, ${t("board.empty")}`}`}
@@ -130,6 +142,8 @@ function Cell({
   isWrong,
   isCandidate,
   highlightDigit,
+  candidateCount,
+  showCandidateCount,
   borderClasses,
   onClick,
   ariaLabel,
@@ -145,6 +159,8 @@ function Cell({
   isWrong: boolean;
   isCandidate: boolean;
   highlightDigit: number;
+  candidateCount: number;
+  showCandidateCount: boolean;
   borderClasses: string;
   onClick: () => void;
   ariaLabel: string;
@@ -191,6 +207,13 @@ function Cell({
         <span className={cn(text, "animate-pop")}>{value}</span>
       ) : notes.length > 0 ? (
         <NotesGrid notes={notes} highlightDigit={highlightDigit} />
+      ) : showCandidateCount && candidateCount > 0 ? (
+        <span className={cn(
+          "text-[clamp(0.5rem,2vw,0.7rem)] font-medium tabular-nums",
+          candidateCount === 1 ? "text-primary font-bold" : "text-muted-foreground/50"
+        )}>
+          {candidateCount}
+        </span>
       ) : null}
     </button>
   );

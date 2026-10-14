@@ -170,6 +170,11 @@ export function SettingsView() {
             checked={settings.showTimer}
             onChange={(v) => setSettings({ showTimer: v })}
           />
+          <ToggleRow
+            label={t("settings.showCandidateCount")}
+            checked={settings.showCandidateCount}
+            onChange={(v) => setSettings({ showCandidateCount: v })}
+          />
 
           <div>
             <div className="mb-2 flex items-center justify-between">
