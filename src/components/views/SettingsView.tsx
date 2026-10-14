@@ -21,6 +21,7 @@ import {
   Upload,
   Trash2,
   Info,
+  GraduationCap,
 } from "lucide-react";
 import { LOCALES, LOCALE_LABELS, type Locale } from "@/lib/i18n/translations";
 import { useTheme } from "next-themes";
@@ -276,6 +277,22 @@ export function SettingsView() {
         <p className="mt-3 rounded-md bg-muted/50 p-3 text-xs text-muted-foreground">
           {t("app.localModeDesc")}
         </p>
+
+        {/* Replay tour */}
+        <div className="mt-4 flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
+          <GraduationCap className="h-5 w-5 shrink-0 text-primary" />
+          <div className="flex-1">
+            <p className="text-sm font-medium">{t("tour.replayTour")}</p>
+            <p className="text-xs text-muted-foreground">{t("tour.replayTourDesc")}</p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => useAppStore.getState().resetTour()}
+          >
+            {t("tour.replayTour")}
+          </Button>
+        </div>
       </Card>
 
       <ResetProgressDialog open={resetOpen} onOpenChange={setResetOpen} onConfirm={handleResetConfirm} />
