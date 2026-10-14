@@ -575,3 +575,42 @@ Task: QA pass + 3 new features (difficulty estimator, freeze notifications, cand
 - The freeze-consumed toast uses English text directly (not i18n) since it's called from the store — a future round should pass through the i18n system.
 - Recommended next round: (a) integrate CandidateWhy into SudokuBoard; (b) estimate remaining difficulty (current board, not just givens); (c) a spotlight-style guided tour overlay; (d) a "hint mode" showing only cells with ≤ 2 candidates; (e) board state export as JSON.
 - The scheduled 15-min cron (id 457699) continues to drive autonomous QA + feature work.
+
+---
+Task ID: 17 (Supabase integration — Phase 1: auth + schema)
+Agent: main
+Task: Supabase setup — install SDK, create schema SQL, auth dialog, match persistence, integrate into header.
+
+## Current project status / assessment
+- User provided Supabase credentials (URL + anon key). .env configured.
+- Installed @supabase/supabase-js. Created client, auth hook, AuthDialog component, match/daily/profile persistence layer, and full SQL schema (supabase-schema.sql) with RLS policies.
+
+## Goals / completed modifications / verification results
+
+### Supabase integration (Phase 1)
+
+1. **SDK installed**: `@supabase/supabase-js@2.117.3`
+2. **Client created** (`lib/supabase/client.ts`): Supabase client with session persistence + auto-refresh.
+3. **Auth hook** (`lib/supabase/auth.ts`): `useAuth()` hook with `signInWithEmail`, `signUpWithEmail`, `signInWithGoogle`, `signOut`. Manages session via `onAuthStateChange`.
+4. **AuthDialog** (`components/layout/AuthDialog.tsx`): Full auth UI — Google OAuth button, email/password form with sign-in/sign-up toggle, profile card when logged in (avatar + name + sign-out). Shows automatically in the header when no user is logged in.
+5. **Match persistence** (`lib/supabase/matches.ts`): `saveMatch()`, `fetchLeaderboard()`, `fetchUserStats()`, `saveDailyRecord()`, `fetchProfile()`, `updateProfile()`, `boardToString()`.
+6. **SQL schema** (`supabase-schema.sql`): 7 tables (profiles, matches, daily_records, friends, chat_messages, rooms, room_participants, seasons) + RLS policies for each + auto-create-profile trigger on signup. Ready to execute in Supabase SQL Editor.
+7. **Header integration**: AuthDialog added to AppShell header (before the local-mode badge).
+
+### Verification
+- ESLint clean.
+- App loads, AuthDialog renders with Google + email/password form (no errors).
+- The auth dialog appears because no user is logged in — shows "Entrar" (sign in) with Google button + email/password fields + toggle to "Criar" (sign up).
+
+## ⚠️ ACTION REQUIRED from user
+The SQL schema must be executed in Supabase before auth works:
+1. Go to https://supabase.com → your project → **SQL Editor**
+2. Copy the contents of `supabase-schema.sql` from the project
+3. Paste + Run
+
+After that, the auth flow (email/Google) will work end-to-end.
+
+## Unresolved issues / risks / next-phase recommendations
+- The SQL schema needs to be executed in Supabase (user action).
+- Google OAuth needs the Google provider enabled in Supabase → Authentication → Providers.
+- Next steps after schema is live: wire match saving (Solo/Daily wins → saveMatch), fetch global leaderboard, implement Duo rooms via Supabase Realtime.

@@ -4,10 +4,12 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useAppStore } from "@/lib/store/app-store";
 import { useI18n } from "@/lib/i18n/context";
 import { NAV_GROUPS, NAV_ITEMS } from "./nav-config";
-import { Grid3x3, Menu, X, Sun, Moon, Globe, Wifi, WifiOff, Volume2, VolumeX } from "lucide-react";
+import { Grid3x3, Menu, X, Sun, Moon, Globe, Wifi, WifiOff, Volume2, VolumeX, Cloud } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
+import { useAuth } from "@/lib/supabase/auth";
+import { AuthDialog } from "@/components/layout/AuthDialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -240,6 +242,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
 
           <div className="ml-auto flex items-center gap-1.5">
+            <AuthDialog />
             <LocalModeBadge />
             <LevelBadge />
             <LanguageMenu />
