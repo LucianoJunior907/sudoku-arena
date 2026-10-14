@@ -61,6 +61,7 @@ type Action =
   | { type: "HINT"; index: number }
   | { type: "TOGGLE_NOTES_MODE" }
   | { type: "AUTO_NOTES" }
+  | { type: "CLEAR_NOTES" }
   | { type: "CHECK" }
   | { type: "SET_HIGHLIGHT_DIGIT"; digit: number }
   | { type: "SET_NOTES"; index: number; notes: number[] }
@@ -176,6 +177,14 @@ function reducer(state: GameState, action: Action): GameState {
         notes[i] = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter((n) => !used.has(n));
       }
       return { ...state, notes, showMistakes: false };
+    }
+    case "CLEAR_NOTES": {
+      if (state.status !== "playing") return state;
+      return {
+        ...state,
+        notes: Array.from({ length: 81 }, () => []),
+        showMistakes: false,
+      };
     }
     case "CHECK":
       if (state.status !== "playing") return state;
@@ -668,6 +677,7 @@ export function useSudokuGame(mode: GameMode = "solo") {
   const hint = useCallback(() => { playSound("hint"); dispatch({ type: "HINT", index: state.selectedIndex }); }, [state.selectedIndex]);
   const toggleNotesMode = useCallback(() => dispatch({ type: "TOGGLE_NOTES_MODE" }), []);
   const autoNotes = useCallback(() => { playSound("note"); dispatch({ type: "AUTO_NOTES" }); }, []);
+  const clearNotes = useCallback(() => { playSound("erase"); dispatch({ type: "CLEAR_NOTES" }); }, []);
   const check = useCallback(() => { playSound("select"); dispatch({ type: "CHECK" }); }, []);
   const setHighlightDigit = useCallback((digit: number) => dispatch({ type: "SET_HIGHLIGHT_DIGIT", digit }), []);
   const pause = useCallback(() => dispatch({ type: "PAUSE" }), []);
@@ -703,6 +713,7 @@ export function useSudokuGame(mode: GameMode = "solo") {
     hint,
     toggleNotesMode,
     autoNotes,
+    clearNotes,
     check,
     setHighlightDigit,
     pause,
