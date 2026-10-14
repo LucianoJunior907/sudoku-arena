@@ -4,7 +4,7 @@ import { PEERS, BOX_INDEX } from "./types";
 export interface SolverSuggestion {
   index: number;
   value: number;
-  technique: "naked-single" | "hidden-single" | "naked-single-in-block" | "solver";
+  technique: "naked-single" | "hidden-single" | "naked-single-in-block" | "naked-pair" | "solver";
   reason: string;
 }
 
@@ -14,12 +14,14 @@ export interface SolverSuggestion {
  * Priority:
  * 1. Naked Single — a cell with only one candidate.
  * 2. Hidden Single — a digit that can only go in one cell within a unit.
- * 3. Fallback: solver-derived move (backtracking finds the next cell to fill).
+ * 3. Naked Pair — two cells in a unit with the same two candidates; eliminating
+ *    those candidates from other cells in the unit may create a naked single.
+ * 4. Fallback: solver-derived move (backtracking finds the next cell to fill).
  *
  * Returns null if the board is complete or unsolvable.
  */
 export function suggestNextMove(board: Board, notes: Notes, solution: Board): SolverSuggestion | null {
-  // Check for naked singles (cells with exactly one candidate).
+  // 1. Check for naked singles (cells with exactly one candidate).
   for (let i = 0; i < 81; i++) {
     if (board[i] !== 0) continue;
     const cands = candidatesFor(board, i);
@@ -33,13 +35,15 @@ export function suggestNextMove(board: Board, notes: Notes, solution: Board): So
     }
   }
 
-  // Check for hidden singles in rows, columns, and boxes.
-  // For each unit, for each missing digit, count how many cells can take it.
+  // 2. Check for hidden singles in rows, columns, and boxes.
   const hidden = findHiddenSingle(board);
   if (hidden) return hidden;
 
-  // Fallback: use the solution to suggest a move (least-revealing approach).
-  // Pick the empty cell with the fewest candidates (MRV) and suggest its solution value.
+  // 3. Check for naked pairs that create a naked single after elimination.
+  const nakedPair = findNakedPairElimination(board);
+  if (nakedPair) return nakedPair;
+
+  // 4. Fallback: use the solution to suggest a move (least-revealing approach).
   let bestIdx = -1;
   let bestCands: number[] = [];
   let bestCount = 10;
@@ -62,7 +66,7 @@ export function suggestNextMove(board: Board, notes: Notes, solution: Board): So
   };
 }
 
-function candidatesFor(board: Board, index: number): number[] {
+export function candidatesFor(board: Board, index: number): number[] {
   const used = new Set<number>();
   for (const p of PEERS[index]) {
     if (board[p] !== 0) used.add(board[p]);
@@ -75,19 +79,16 @@ function candidatesFor(board: Board, index: number): number[] {
 }
 
 function findHiddenSingle(board: Board): SolverSuggestion | null {
-  // Check rows
   for (let row = 0; row < 9; row++) {
     const cells = Array.from({ length: 9 }, (_, c) => row * 9 + c);
     const result = checkUnitForHiddenSingle(board, cells, "row", row);
     if (result) return result;
   }
-  // Check columns
   for (let col = 0; col < 9; col++) {
     const cells = Array.from({ length: 9 }, (_, r) => r * 9 + col);
     const result = checkUnitForHiddenSingle(board, cells, "column", col);
     if (result) return result;
   }
-  // Check boxes
   for (let b = 0; b < 9; b++) {
     const result = checkUnitForHiddenSingle(board, BOX_INDEX[b], "box", b);
     if (result) return result;
@@ -101,9 +102,7 @@ function checkUnitForHiddenSingle(
   unitType: string,
   unitIdx: number
 ): SolverSuggestion | null {
-  // For each digit 1-9, find which empty cells in this unit can take it.
   for (let digit = 1; digit <= 9; digit++) {
-    // Is this digit already in the unit?
     const alreadyPresent = cells.some((c) => board[c] === digit);
     if (alreadyPresent) continue;
 
@@ -122,6 +121,62 @@ function checkUnitForHiddenSingle(
         technique: "hidden-single",
         reason: `Digit ${digit} can only go in one cell within ${unitName} — it's a hidden single.`,
       };
+    }
+  }
+  return null;
+}
+
+/**
+ * Find a naked pair (two cells in a unit with the same exactly-two candidates)
+ * that, when eliminated from peers, creates a naked single in the same unit.
+ */
+function findNakedPairElimination(board: Board): SolverSuggestion | null {
+  const units: { cells: number[]; name: string }[] = [];
+  for (let row = 0; row < 9; row++) {
+    units.push({ cells: Array.from({ length: 9 }, (_, c) => row * 9 + c), name: `row ${row + 1}` });
+  }
+  for (let col = 0; col < 9; col++) {
+    units.push({ cells: Array.from({ length: 9 }, (_, r) => r * 9 + col), name: `column ${col + 1}` });
+  }
+  for (let b = 0; b < 9; b++) {
+    units.push({ cells: BOX_INDEX[b], name: `box ${b + 1}` });
+  }
+
+  for (const unit of units) {
+    // Find cells with exactly 2 candidates in this unit
+    const pairs: { idx: number; cands: number[] }[] = [];
+    for (const c of unit.cells) {
+      if (board[c] !== 0) continue;
+      const cands = candidatesFor(board, c);
+      if (cands.length === 2) pairs.push({ idx: c, cands });
+    }
+
+    // Check all pairs of pairs for matching candidates
+    for (let i = 0; i < pairs.length; i++) {
+      for (let j = i + 1; j < pairs.length; j++) {
+        if (
+          pairs[i].cands[0] === pairs[j].cands[0] &&
+          pairs[i].cands[1] === pairs[j].cands[1]
+        ) {
+          // Found a naked pair! Check if eliminating these candidates from
+          // other cells in the unit creates a naked single.
+          const [d1, d2] = pairs[i].cands;
+          for (const c of unit.cells) {
+            if (c === pairs[i].idx || c === pairs[j].idx || board[c] !== 0) continue;
+            const cands = candidatesFor(board, c);
+            const filtered = cands.filter((x) => x !== d1 && x !== d2);
+            if (filtered.length === 1) {
+              // This cell becomes a naked single after elimination!
+              return {
+                index: c,
+                value: filtered[0],
+                technique: "naked-pair",
+                reason: `Naked pair {${d1}, ${d2}} in ${unit.name} eliminates candidates ${d1} and ${d2} from this cell, leaving only ${filtered[0]} as a naked single.`,
+              };
+            }
+          }
+        }
+      }
     }
   }
   return null;

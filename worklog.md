@@ -500,3 +500,42 @@ Task: QA pass + 3 new features (puzzle solver assistant, board theme preview, pe
 - The per-mode comparison only compares Solo vs Daily (the only two modes with real data in the local phase) — Duo/Ranked would be added when backend lands.
 - Recommended next round: (a) extend the solver to detect naked pairs/triples for more meaningful suggestions; (b) a "streak freeze" cosmetic item; (c) spotlight-style guided tour overlay; (d) a per-cell candidate count display toggle; (e) a "puzzle difficulty estimator" that rates how hard the current board is.
 - The scheduled 15-min cron (id 457699) continues to drive autonomous QA + feature work.
+
+---
+Task ID: 15 (cron webDevReview round 9)
+Agent: main
+Task: QA pass + 3 new features (naked-pair solver, candidate count toggle, streak freeze) + bug fix.
+
+## Current project status / assessment
+- Project complete through Task 14 (all 15 views + sound + achievements + charts + solo tools + candidate hover + streak calendar + guide practice + board themes + keyboard help + clear notes + overview dashboard + reset dialog + records view + share board + sound toggle + board export + puzzle of week + focus trap + guided tour + puzzle archive + view transitions + cycle shortcut + daily calendar replay + puzzle solver + board theme preview + per-mode stats comparison). Dev server healthy on :3000, lint clean.
+- QA pass via agent-browser: all 15 views + Archive navigate cleanly; full Solo win flow works; solver dialog works; theme previews render; per-mode comparison shows. Found 1 runtime bug (DailyView).
+
+## Goals / completed modifications / verification results
+
+### Bug fix (priority)
+- **DailyView crash (undefined `profile` variable)**: added `profile.streakFreezes` to the Daily streak card but forgot to add `const profile = useAppStore((s) => s.profile)` to the DailyView component. Caused "Application error: a client-side exception has occurred" when navigating to Daily. Fixed by adding the missing selector. Also fixed a build error: `candidatesFor` in solver-hint.ts was not exported (imported by SudokuBoard) — exported it.
+
+### New features (mandatory: more features + more styling)
+
+1. **Naked Pair solver extension** (recommended last round): extended `lib/sudoku/solver-hint.ts` with `findNakedPairElimination()` — finds two cells in a unit (row/col/box) with the same exactly-two candidates, then checks if eliminating those candidates from other cells in the unit creates a naked single. If so, suggests that cell with technique "naked-pair" and a detailed reason string. Added "naked-pair" to the SolverSuggestion technique union + SolverDialog's technique label/color (chart-5). The solver priority chain is now: Naked Single → Hidden Single → Naked Pair → Solver fallback. Verified: solver dialog works on a fresh puzzle (falls back to "Solver" technique, as expected with many empty cells).
+
+2. **Per-cell candidate count display toggle** (recommended last round): added `showCandidateCount` to AppSettings (default false) + a toggle in SettingsView ("Mostrar contagem de candidatos / Show candidate count"). When enabled, empty cells without notes display a small number showing how many candidates remain (computed via the exported `candidatesFor` from solver-hint). Cells with 1 candidate show in primary bold (highlighting naked singles); cells with more candidates show in muted/50. The count is computed via a memoized array in SudokuBoard. Verified: enabling the toggle + starting a Solo game shows 45 cells with candidate counts.
+
+3. **Streak freeze cosmetic item** (recommended last round): added `streakFreezes` to LocalProfile (persisted, default 0). Awarded on level-up at thresholds 3, 7, 14 (1 freeze each, 3 total) — checked in both `recordGame` and `checkAchievements` level-up paths. Consumed in `recordDaily` when the streak would reset (yesterday check fails): if `streakFreezes > 0` and `streak.count > 0`, consumes one freeze and increments the streak instead of resetting. The Daily streak card shows the freeze count with a Snowflake icon when > 0. Added 3 translation keys (daily.streakFreeze/Desc). Verified: Daily view loads without errors; streak card renders (0 freezes at level 1, hidden).
+
+### Styling polish (mandatory: more styling)
+- Solver: "naked-pair" technique badge in chart-5 color (border + bg + text).
+- Candidate count: single-candidate cells (naked singles) highlighted in primary bold; multi-candidate in muted/50.
+- Streak freeze: Snowflake icon in chart-5 color, shown only when freezes > 0.
+
+### Verification
+- ESLint clean throughout.
+- agent-browser confirmed: candidate count toggle enables + shows 45 counts on a Solo board; solver dialog opens with title + reasoning + apply; Daily view loads after bug fix; no runtime/console errors.
+- Fixed 2 bugs: (1) `candidatesFor` not exported from solver-hint (build error); (2) `profile` undefined in DailyView (runtime crash).
+
+## Unresolved issues / risks / next-phase recommendations
+- The naked-pair solver only detects pairs that directly create a naked single — it doesn't report naked pairs as findings when they just eliminate candidates without creating a single. A future round could add "elimination-only" suggestions.
+- The candidate count is computed on every board change (81-cell scan per render) — acceptable for 81 cells but could be memoized more aggressively.
+- Streak freezes are awarded silently (no toast); a future round could show a notification when a freeze is earned or consumed.
+- Recommended next round: (a) a "puzzle difficulty estimator" (rate how hard the current board is based on techniques needed); (b) a spotlight-style guided tour overlay; (c) freeze-earned/consumed notifications; (d) a "hint mode" that shows candidate counts only for cells with ≤ 2 candidates; (e) a per-cell "why" tooltip explaining why a candidate is eliminated.
+- The scheduled 15-min cron (id 457699) continues to drive autonomous QA + feature work.

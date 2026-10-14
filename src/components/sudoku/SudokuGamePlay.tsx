@@ -212,6 +212,7 @@ export function SudokuGamePlay({
               highlightPeers: settings.highlightPeers,
               highlightSame: settings.highlightSame,
               autoCheck: settings.autoCheck,
+              showCandidateCount: settings.showCandidateCount,
             }}
             onSelect={game.select}
           />
