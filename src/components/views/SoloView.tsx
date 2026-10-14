@@ -7,6 +7,7 @@ import { useI18n } from "@/lib/i18n/context";
 import { SudokuGamePlay } from "@/components/sudoku/SudokuGamePlay";
 import { ShareBoardDialog, LoadSharedBoardDialog } from "@/components/sudoku/ShareDialogs";
 import { ExportImageDialog } from "@/components/sudoku/ExportImageDialog";
+import { SolverDialog } from "@/components/sudoku/SolverDialog";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +35,7 @@ export function SoloView() {
   const [shareOpen, setShareOpen] = useState(false);
   const [loadOpen, setLoadOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [solverOpen, setSolverOpen] = useState(false);
 
   // If a practice board was set (from Guide), load it once on mount.
   const consumedPractice = useRef(false);
@@ -156,6 +158,7 @@ export function SoloView() {
           onNewGame={() => game.startNew(state.difficulty)}
           onShare={() => setShareOpen(true)}
           onExport={() => setExportOpen(true)}
+          onSolver={() => setSolverOpen(true)}
         />
       </div>
       <ShareBoardDialog
@@ -172,6 +175,19 @@ export function SoloView() {
         given={state.given}
         title="Sudoku Arena"
         subtitle={`${t("difficulty." + state.difficulty)} · ${t("nav.solo")}`}
+      />
+      <SolverDialog
+        open={solverOpen}
+        onOpenChange={setSolverOpen}
+        board={state.board}
+        notes={state.notes}
+        solution={state.solution}
+        given={state.given}
+        hintCells={state.hintCells}
+        onApply={(index, value) => {
+          game.select(index);
+          game.setValue(value);
+        }}
       />
     </div>
   );

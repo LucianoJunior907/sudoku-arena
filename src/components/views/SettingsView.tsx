@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useAppStore } from "@/lib/store/app-store";
 import { useI18n } from "@/lib/i18n/context";
 import { BOARD_THEMES } from "@/lib/progression/board-themes";
+import { BoardThemePreview } from "@/components/settings/BoardThemePreview";
 import { ResetProgressDialog } from "@/components/settings/ResetProgressDialog";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -209,17 +210,14 @@ export function SettingsView() {
                     key={bt.id}
                     onClick={() => setSettings({ boardTheme: bt.id })}
                     className={cn(
-                      "flex items-center gap-2 rounded-lg border px-3 py-2 text-xs transition-colors",
+                      "flex flex-col items-center gap-1.5 rounded-lg border p-2 text-xs transition-all",
                       active
-                        ? "border-primary bg-primary/5 text-primary"
-                        : "border-border hover:bg-muted/50"
+                        ? "border-primary bg-primary/5 text-primary shadow-sm"
+                        : "border-border hover:bg-muted/50 hover:border-primary/30"
                     )}
                   >
-                    <span
-                      className="h-4 w-4 rounded-full ring-1 ring-border"
-                      style={{ background: bt.swatch }}
-                    />
-                    {locale === "pt-BR" ? bt.name["pt-BR"] : bt.name.en}
+                    <BoardThemePreview themeId={bt.id} />
+                    <span className="font-medium">{locale === "pt-BR" ? bt.name["pt-BR"] : bt.name.en}</span>
                   </button>
                 );
               })}
