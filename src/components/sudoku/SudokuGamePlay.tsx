@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { useSudokuGame } from "@/hooks/use-sudoku-game";
 import { useAppStore } from "@/lib/store/app-store";
 import { useI18n } from "@/lib/i18n/context";
@@ -8,11 +8,12 @@ import { getBoardTheme } from "@/lib/progression/board-themes";
 import { SudokuBoard } from "@/components/sudoku/SudokuBoard";
 import { NumberPad } from "@/components/sudoku/NumberPad";
 import { WinScreen } from "@/components/sudoku/WinScreen";
+import { ShortcutHelpDialog } from "@/components/sudoku/ShortcutHelpDialog";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { formatTime } from "@/lib/sudoku/saved-game";
-import { Clock, AlertTriangle, Pause, Play, RotateCcw, Plus, ChevronLeft, Wand2, SearchCheck } from "lucide-react";
+import { Clock, AlertTriangle, Pause, Play, RotateCcw, Plus, ChevronLeft, Wand2, SearchCheck, Keyboard, NotebookPen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -37,6 +38,7 @@ export function SudokuGamePlay({
   const settings = useAppStore((s) => s.settings);
   const { state } = game;
   const boardThemeVars = useMemo(() => getBoardTheme(settings.boardTheme).vars, [settings.boardTheme]);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   // Keyboard support
   useEffect(() => {
@@ -68,6 +70,7 @@ export function SudokuGamePlay({
       }
       else if (e.key === "a" || e.key === "A") game.autoNotes();
       else if (e.key === "c" || e.key === "C") game.check();
+      else if (e.key === "?" || (e.shiftKey && e.key === "/")) { e.preventDefault(); setHelpOpen(true); }
       else if ((e.key === "z" || e.key === "Z") && (e.ctrlKey || e.metaKey) && e.shiftKey) { e.preventDefault(); game.redo(); }
       else if ((e.key === "z" || e.key === "Z") && (e.ctrlKey || e.metaKey)) { e.preventDefault(); game.undo(); }
       else if (e.key === "ArrowUp") { e.preventDefault(); moveSelection(0, -1); }
@@ -151,11 +154,22 @@ export function SudokuGamePlay({
           <Wand2 className="h-3.5 w-3.5 text-primary" />
           <span className="hidden sm:inline">{t("solo.autoNotes")}</span>
         </Button>
+        <Button variant="outline" size="sm" onClick={game.clearNotes} className="gap-1.5">
+          <NotebookPen className="h-3.5 w-3.5 text-[var(--chart-4)]" />
+          <span className="hidden sm:inline">{t("solo.clearNotes")}</span>
+        </Button>
         <Button variant="outline" size="sm" onClick={game.check} className="gap-1.5">
           <SearchCheck className="h-3.5 w-3.5 text-[var(--warning)]" />
           <span className="hidden sm:inline">{t("solo.check")}</span>
         </Button>
+        <div className="ml-auto">
+          <Button variant="ghost" size="sm" onClick={() => setHelpOpen(true)} aria-label={t("solo.shortcutHelp")}>
+            <Keyboard className="h-3.5 w-3.5" />
+          </Button>
+        </div>
       </div>
+
+      <ShortcutHelpDialog open={helpOpen} onOpenChange={setHelpOpen} />
 
       {/* Board + pad */}
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">

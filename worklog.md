@@ -287,3 +287,39 @@ Task: QA pass + 4 new features (candidate hover, streak calendar, guide practice
 - The daily streak calendar shows completed days but doesn't yet allow clicking a past day to replay it (daily is date-locked by design).
 - Recommended next round: (a) keyboard shortcut help overlay/modal; (b) "undo all notes" / "clear notes" tool; (c) export/import now includes the new settings (boardTheme) — verify; (d) a stats dashboard combining solo + daily + achievements into one overview.
 - The scheduled 15-min cron (id 457699) continues to drive autonomous QA + feature work.
+
+---
+Task ID: 9 (cron webDevReview round 3)
+Agent: main
+Task: QA pass + 3 new features (keyboard help, clear notes, overview dashboard) + styling polish.
+
+## Current project status / assessment
+- Project complete through Task 8 (all 12 views + sound + achievements + charts + solo tools + candidate hover + streak calendar + guide practice + board themes). Dev server healthy on :3000, lint clean, 108 source files.
+- QA pass via agent-browser: all 12 views navigate cleanly (no errors/console errors); full Solo win flow works (win→XP→achievements→toast); Guide practice loads technique board with board theme applied; Settings board theme picker works (Ocean `--cell-bg-selected` applied to board); StreakCalendar renders (96 cells); mobile (iPhone 14) hamburger nav works. No bugs found — the toast pointer-events fix from round 2 is confirmed working (play-again immediately clickable with toasts visible).
+
+## Goals / completed modifications / verification results
+
+### New features (mandatory: more features + more styling)
+
+1. **Keyboard shortcut help overlay** (recommended last round): new `ShortcutHelpDialog` component with a Keyboard icon header, description, and 11 shortcut rows (1-9, Backspace, N, H, A, C, P, Ctrl+Z, Ctrl+Shift+Z, arrows, ?) rendered as `<kbd>` chips with labels. Triggered by the "?" key (Shift+/) in SudokuGamePlay's keyboard handler OR a new ghost keyboard-icon button in the tools row. Dialog closes via Escape or backdrop. Added 13 translation keys (solo.shortcutHelp, solo.shortcutHelpDesc, shortcut.*). Verified: dialog opens via "?" key + toolbar button, shows all 11 rows, closes via Escape.
+
+2. **Clear notes tool** (recommended last round): new `CLEAR_NOTES` reducer action in the hook (clears all notes to empty arrays, resets showMistakes) + `clearNotes` callback. New "Limpar anotações / Clear notes" button in the SudokuGamePlay tools row (NotebookPen icon, chart-4 color). Added solo.clearNotes translation key (pt-BR + en). Verified: auto-notes filled 46 cells → click Clear notes → 0 cells with notes.
+
+3. **Stats dashboard / Overview view** (recommended last round): new "Visão Geral / Overview" route + nav item (PieChart icon, Account group). New `OverviewView` combining: (a) profile summary card (avatar, level, division, XP, achievements progress bar), (b) 8-card quick-stats grid (games played, wins, best streak, total time, avg time, best time, daily completed, achievements count) with gradient accents + hover scale, (c) wins-per-difficulty radar chart (recharts, empty state when 0 wins), (d) recent-games list (top 10 from history with win/loss icons + xp), (e) daily streak summary card, (f) achievements summary with 15-icon grid (locked/unlocked). Deep-links to Profile/Daily/Achievements via ChevronRight buttons. Added 10 overview.* translation keys. Verified: title/quickStats/streak/achievements all render; empty state shows "Jogue uma partida" when no data; mobile nav includes the new item.
+
+### Styling polish (mandatory: more styling)
+- Overview stat cards: gradient accents + group hover (icon scale, border highlight, shadow).
+- Help dialog: centered header with primary-tinted icon, kbd chips with shadow, hover rows.
+- Tools row: keyboard help button (ghost, ml-auto) + color-coded tool icons (Wand2 primary, NotebookPen chart-4, SearchCheck warning).
+- Overview profile summary: radial division-color glow + arena-grid texture + ringed avatar.
+- Recent games: win/loss circular icons, hover bg, monospace xp.
+
+### Verification
+- ESLint clean throughout (removed unused Eraser import).
+- agent-browser confirmed: Overview view renders all sections; help dialog opens via "?" + button (11 rows), closes via Escape; Clear notes clears 46→0; mobile nav includes Overview; no runtime/console errors.
+
+## Unresolved issues / risks / next-phase recommendations
+- The Overview radar chart only shows when soloWins > 0; a future round could show a placeholder radar with all-zero axes.
+- Clear notes is not undoable (it doesn't push a history entry) — by design, but could be reconsidered.
+- Recommended next round: (a) keyboard navigation across the whole app (Tab focus traps in dialogs); (b) a "share board" feature (export board as image/URL); (c) per-difficulty best-times leaderboard view (local); (d) sound on/off toggle in the header; (e) a "reset progress" confirmation dialog with type-to-confirm.
+- The scheduled 15-min cron (id 457699) continues to drive autonomous QA + feature work.
