@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useAppStore } from "@/lib/store/app-store";
 import { useI18n } from "@/lib/i18n/context";
 import { NAV_GROUPS, NAV_ITEMS } from "./nav-config";
@@ -186,6 +186,26 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { t } = useI18n();
   const route = useAppStore((s) => s.route);
+  const setRoute = useAppStore((s) => s.setRoute);
+
+  // Keyboard shortcut to cycle views with Alt + ArrowLeft/ArrowRight
+  useEffect(() => {
+    const NAV_ORDER = NAV_ITEMS.map((n) => n.id);
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return;
+      if (!e.altKey) return;
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      e.preventDefault();
+      const currentIdx = NAV_ORDER.indexOf(route);
+      if (currentIdx < 0) return;
+      const delta = e.key === "ArrowRight" ? 1 : -1;
+      const nextIdx = (currentIdx + delta + NAV_ORDER.length) % NAV_ORDER.length;
+      setRoute(NAV_ORDER[nextIdx]);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [route, setRoute]);
 
   return (
     <div className="flex min-h-screen flex-col bg-background bg-arena-grid">

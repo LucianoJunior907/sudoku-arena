@@ -2,6 +2,7 @@
 
 import { useAppStore } from "@/lib/store/app-store";
 import { AppShell } from "@/components/layout/AppShell";
+import { ViewTransition } from "@/components/layout/ViewTransition";
 import { LobbyView } from "@/components/views/LobbyView";
 import { SettingsView } from "@/components/views/SettingsView";
 import { SoloView } from "@/components/views/SoloView";
@@ -18,26 +19,35 @@ import { OverviewView } from "@/components/views/OverviewView";
 import { RecordsView } from "@/components/views/RecordsView";
 import { ArchiveView } from "@/components/views/ArchiveView";
 
+function renderView(route: string) {
+  switch (route) {
+    case "lobby": return <LobbyView />;
+    case "settings": return <SettingsView />;
+    case "solo": return <SoloView />;
+    case "guide": return <GuideView />;
+    case "daily": return <DailyView />;
+    case "duo": return <DuoView />;
+    case "ranked": return <RankedView />;
+    case "friends": return <FriendsView />;
+    case "history": return <HistoryView />;
+    case "leaderboard": return <LeaderboardView />;
+    case "achievements": return <AchievementsView />;
+    case "overview": return <OverviewView />;
+    case "records": return <RecordsView />;
+    case "archive": return <ArchiveView />;
+    case "profile": return <ProfileView />;
+    default: return <LobbyView />;
+  }
+}
+
 export default function Home() {
   const route = useAppStore((s) => s.route);
 
   return (
     <AppShell>
-      {route === "lobby" && <LobbyView />}
-      {route === "settings" && <SettingsView />}
-      {route === "solo" && <SoloView />}
-      {route === "guide" && <GuideView />}
-      {route === "daily" && <DailyView />}
-      {route === "duo" && <DuoView />}
-      {route === "ranked" && <RankedView />}
-      {route === "friends" && <FriendsView />}
-      {route === "history" && <HistoryView />}
-      {route === "leaderboard" && <LeaderboardView />}
-      {route === "achievements" && <AchievementsView />}
-      {route === "overview" && <OverviewView />}
-      {route === "records" && <RecordsView />}
-      {route === "archive" && <ArchiveView />}
-      {route === "profile" && <ProfileView />}
+      <ViewTransition routeKey={route}>
+        {renderView(route)}
+      </ViewTransition>
     </AppShell>
   );
 }

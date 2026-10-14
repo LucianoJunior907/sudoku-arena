@@ -156,6 +156,7 @@ const translations = {
     "shortcut.redo": "Refazer (Ctrl+Shift+Z)",
     "shortcut.move": "Mover seleção (setas)",
     "shortcut.help": "Abrir esta ajuda (?)",
+    "shortcut.cycleView": "Alternar views (Alt+←/→)",
     "solo.autoNotes": "Anotar",
     "solo.clearNotes": "Limpar anotações",
     "solo.check": "Verificar",
@@ -201,6 +202,7 @@ const translations = {
     "daily.score": "Pontuação",
     "daily.limitation": "Limitação: sem backend, não é possível garantir a mesma versão do desafio para todos os jogadores, compartilhar recordes globalmente ou impedir manipulação local dos resultados.",
     "daily.startChallenge": "Iniciar desafio",
+    "daily.clickReplay": "Clique num dia concluído para revisar o desafio.",
 
     // Profile
     "profile.title": "Perfil",
@@ -548,6 +550,7 @@ const translations = {
     "shortcut.redo": "Redo (Ctrl+Shift+Z)",
     "shortcut.move": "Move selection (arrows)",
     "shortcut.help": "Open this help (?)",
+    "shortcut.cycleView": "Cycle views (Alt+←/→)",
     "solo.autoNotes": "Auto-notes",
     "solo.clearNotes": "Clear notes",
     "solo.check": "Check",
@@ -591,6 +594,7 @@ const translations = {
     "daily.score": "Score",
     "daily.limitation": "Limitation: without a backend, it's not possible to guarantee the same challenge version for all players, share global records, or prevent local manipulation of results.",
     "daily.startChallenge": "Start challenge",
+    "daily.clickReplay": "Click a completed day to replay the challenge.",
 
     "profile.title": "Profile",
     "profile.editProfile": "Edit profile",
