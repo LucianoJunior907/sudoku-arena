@@ -13,7 +13,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { formatTime } from "@/lib/sudoku/saved-game";
-import { Clock, AlertTriangle, Pause, Play, RotateCcw, Plus, ChevronLeft, Wand2, SearchCheck, Keyboard, NotebookPen, Share2, Image as ImageIcon, Brain } from "lucide-react";
+import { Clock, AlertTriangle, Pause, Play, RotateCcw, Plus, ChevronLeft, Wand2, SearchCheck, Keyboard, NotebookPen, Share2, Image as ImageIcon, Brain, Gauge } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -27,6 +27,7 @@ export function SudokuGamePlay({
   onShare,
   onExport,
   onSolver,
+  onDifficulty,
   backLabel,
   showNewGame = true,
 }: {
@@ -37,6 +38,7 @@ export function SudokuGamePlay({
   onShare?: () => void;
   onExport?: () => void;
   onSolver?: () => void;
+  onDifficulty?: () => void;
   backLabel: string;
   showNewGame?: boolean;
 }) {
@@ -184,6 +186,12 @@ export function SudokuGamePlay({
           <Button variant="outline" size="sm" onClick={onSolver} className="gap-1.5 border-[var(--chart-4)]/30">
             <Brain className="h-3.5 w-3.5 text-[var(--chart-4)]" />
             <span className="hidden lg:inline">{t("solo.solver")}</span>
+          </Button>
+        )}
+        {onDifficulty && (
+          <Button variant="outline" size="sm" onClick={onDifficulty} className="gap-1.5" aria-label={t("solo.estimateDifficulty")}>
+            <Gauge className="h-3.5 w-3.5 text-[var(--chart-5)]" />
+            <span className="hidden lg:inline">{t("solo.estimateDifficulty")}</span>
           </Button>
         )}
         <div className="ml-auto">

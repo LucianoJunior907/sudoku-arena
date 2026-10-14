@@ -8,6 +8,7 @@ import { SudokuGamePlay } from "@/components/sudoku/SudokuGamePlay";
 import { ShareBoardDialog, LoadSharedBoardDialog } from "@/components/sudoku/ShareDialogs";
 import { ExportImageDialog } from "@/components/sudoku/ExportImageDialog";
 import { SolverDialog } from "@/components/sudoku/SolverDialog";
+import { DifficultyDialog } from "@/components/sudoku/DifficultyDialog";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +37,7 @@ export function SoloView() {
   const [loadOpen, setLoadOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [solverOpen, setSolverOpen] = useState(false);
+  const [difficultyOpen, setDifficultyOpen] = useState(false);
 
   // If a practice board was set (from Guide), load it once on mount.
   const consumedPractice = useRef(false);
@@ -159,6 +161,7 @@ export function SoloView() {
           onShare={() => setShareOpen(true)}
           onExport={() => setExportOpen(true)}
           onSolver={() => setSolverOpen(true)}
+          onDifficulty={() => setDifficultyOpen(true)}
         />
       </div>
       <ShareBoardDialog
@@ -188,6 +191,11 @@ export function SoloView() {
           game.select(index);
           game.setValue(value);
         }}
+      />
+      <DifficultyDialog
+        open={difficultyOpen}
+        onOpenChange={setDifficultyOpen}
+        puzzle={state.board}
       />
     </div>
   );
