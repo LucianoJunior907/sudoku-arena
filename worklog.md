@@ -465,3 +465,38 @@ Task: QA pass + 3 new features (view transitions, view-cycle shortcut, daily cal
 - The daily calendar replay loads the puzzle in "daily" mode, which will re-record a daily result for that date if completed. This is acceptable (it's a replay) but could be made non-recording in a future round.
 - Recommended next round: (a) a "streak freeze" cosmetic item; (b) per-mode stats comparison view; (c) spotlight-style guided tour overlay; (d) board theme preview in settings; (e) a "puzzle solver" assistant that suggests the next move.
 - The scheduled 15-min cron (id 457699) continues to drive autonomous QA + feature work.
+
+---
+Task ID: 14 (cron webDevReview round 8)
+Agent: main
+Task: QA pass + 3 new features (puzzle solver assistant, board theme preview, per-mode stats comparison) + styling polish.
+
+## Current project status / assessment
+- Project complete through Task 13 (all 15 views + sound + achievements + charts + solo tools + candidate hover + streak calendar + guide practice + board themes + keyboard help + clear notes + overview dashboard + reset dialog + records view + share board + sound toggle + board export + puzzle of week + focus trap + guided tour + puzzle archive + view transitions + cycle shortcut + daily calendar replay). Dev server healthy on :3000, lint clean.
+- QA pass via agent-browser: all 15 views + Archive navigate cleanly (no errors/console errors); full Solo win flow works (win→XP→achievements); view transitions smooth; Alt+Arrow cycle works; mobile nav works. No bugs found.
+
+## Goals / completed modifications / verification results
+
+### New features (mandatory: more features + more styling)
+
+1. **Puzzle solver assistant** (recommended last round): new `lib/sudoku/solver-hint.ts` with `suggestNextMove(board, notes, solution)` — analyzes the current board and suggests the next logical move using priority: Naked Single (cell with one candidate) → Hidden Single (digit with one possible cell in a unit) → Solver fallback (MRV + solution). Returns a `SolverSuggestion` with index, value, technique name, and a human-readable reason string. New `SolverDialog` component showing: a Brain icon header, the suggested cell (value + position + technique badge with color-coded technique), the reasoning text, and an "Apply suggestion" button that selects the cell + places the value. Wired into SoloView via `onSolver` prop + a Brain button in the SudokuGamePlay tools row (chart-4 colored border). Added 9 translation keys (solo.solver*). Verified: dialog opens on a fresh easy puzzle, shows "Solver" technique fallback (expected with many empty cells), suggested cell 4,3, reasoning text, apply button.
+
+2. **Board theme preview in settings** (recommended last round): new `BoardThemePreview` component (`components/settings/`) — a mini 3×3 grid showing how the selected theme colors different cell states (given, peer, selected, same, empty, conflict, hint) using the theme's CSS var overrides applied as inline style. Replaced the simple swatch circles in the Settings theme picker with these previews. Each theme button now shows a vertical card with the mini-board preview + theme name. Verified: 5 mini board previews render (one per theme), with proper cell-state colors.
+
+3. **Per-mode stats comparison** (recommended last round): new section in OverviewView showing a horizontal bar comparison of Solo vs Daily across 3 metrics (games played, wins, win rate). Each metric has two bars (primary-colored for Solo, teal-colored for Daily) with proportional widths and value labels. Empty state when both modes have 0 activity. Verified: comparison shows in Overview with Solo vs Daily bars.
+
+### Styling polish (mandatory: more styling)
+- Solver dialog: Brain icon (chart-4 tinted), color-coded technique badges (primary for naked-single, warning for hidden-single, chart-4 for solver), reasoning card with Wand2 icon, apply button with checkmark feedback.
+- Board theme picker: vertical card layout with mini-board preview above the theme name, active state with shadow, hover border transition.
+- Per-mode comparison: dual-color bars (primary vs teal), value labels positioned inside bars, proportional widths with transition-all.
+
+### Verification
+- ESLint clean throughout.
+- agent-browser confirmed: Solver dialog opens with technique + reasoning + apply; 5 theme previews render in Settings; per-mode comparison shows in Overview; no runtime/console errors.
+
+## Unresolved issues / risks / next-phase recommendations
+- The solver's naked-single and hidden-single detection is basic (doesn't yet detect naked pairs, pointing pairs, etc.) — a future round could extend to more advanced techniques for more useful suggestions.
+- The board theme preview is a static 3×3 (not a real puzzle) — adequate for showing color states but could show a real mini-puzzle.
+- The per-mode comparison only compares Solo vs Daily (the only two modes with real data in the local phase) — Duo/Ranked would be added when backend lands.
+- Recommended next round: (a) extend the solver to detect naked pairs/triples for more meaningful suggestions; (b) a "streak freeze" cosmetic item; (c) spotlight-style guided tour overlay; (d) a per-cell candidate count display toggle; (e) a "puzzle difficulty estimator" that rates how hard the current board is.
+- The scheduled 15-min cron (id 457699) continues to drive autonomous QA + feature work.

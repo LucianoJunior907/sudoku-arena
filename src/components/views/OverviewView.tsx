@@ -266,6 +266,61 @@ export function OverviewView() {
         </Card>
       </div>
 
+      {/* Per-mode comparison */}
+      <Card className="p-5">
+        <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold">
+          <TrendingUp className="h-4 w-4 text-primary" />
+          {t("overview.activity")} · {t("nav.solo")} vs {t("nav.daily")}
+        </h3>
+        {soloPlayed === 0 && dailyCompleted === 0 ? (
+          <div className="flex h-[100px] items-center justify-center text-xs text-muted-foreground">
+            {t("overview.noActivity")}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {[
+              { label: t("profile.gamesPlayed"), solo: soloPlayed, daily: dailyCompleted, max: Math.max(soloPlayed, dailyCompleted, 1) },
+              { label: t("profile.wins"), solo: soloWins, daily: dailyCompleted, max: Math.max(soloWins, dailyCompleted, 1) },
+              {
+                label: t("profile.winRate"),
+                solo: soloPlayed ? Math.round((soloWins / soloPlayed) * 100) : 0,
+                daily: dailyCompleted ? 100 : 0,
+                max: 100,
+                suffix: "%",
+              },
+            ].map((row, i) => (
+              <div key={i} className="space-y-1">
+                <p className="text-xs text-muted-foreground">{row.label}</p>
+                <div className="flex items-center gap-2">
+                  <span className="w-12 shrink-0 text-[10px] font-medium text-primary">{t("nav.solo")}</span>
+                  <div className="relative h-5 flex-1 overflow-hidden rounded bg-muted">
+                    <div
+                      className="h-full rounded bg-primary/60 transition-all"
+                      style={{ width: `${(row.solo / row.max) * 100}%` }}
+                    />
+                    <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[10px] font-bold tabular-nums">
+                      {row.solo}{row.suffix ?? ""}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-12 shrink-0 text-[10px] font-medium text-teal-500">{t("nav.daily")}</span>
+                  <div className="relative h-5 flex-1 overflow-hidden rounded bg-muted">
+                    <div
+                      className="h-full rounded bg-teal-500/60 transition-all"
+                      style={{ width: `${(row.daily / row.max) * 100}%` }}
+                    />
+                    <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[10px] font-bold tabular-nums">
+                      {row.daily}{row.suffix ?? ""}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
       {/* Daily streak summary */}
       <Card className="p-5">
         <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold">
