@@ -395,3 +395,38 @@ Task: QA pass + 3 new features (header sound toggle, board export as image, puzz
 - `copyBoardImage` requires Clipboard API support (HTTPS + modern browser); falls back gracefully with a toast error.
 - Recommended next round: (a) keyboard Tab focus-trap in all dialogs; (b) daily calendar click-to-replay past days; (c) a "puzzle archive" browsing past puzzles of the week; (d) a guided-tour/onboarding for first-time users beyond the language picker; (e) a "daily streak freeze" item (cosmetic) to protect streaks.
 - The scheduled 15-min cron (id 457699) continues to drive autonomous QA + feature work.
+
+---
+Task ID: 12 (cron webDevReview round 6)
+Agent: main
+Task: QA pass + 3 new features (focus-trap hook, guided tour, puzzle archive) + styling polish.
+
+## Current project status / assessment
+- Project complete through Task 11 (all 14 views + sound + achievements + charts + solo tools + candidate hover + streak calendar + guide practice + board themes + keyboard help + clear notes + overview dashboard + reset dialog + records view + share board + sound toggle + board export + puzzle of the week). Dev server healthy on :3000, lint clean.
+- QA pass via agent-browser: all 14 views navigate cleanly (no errors/console errors); full Solo win flow works (win→XP→achievements); Share dialog generates a valid code; sound toggle persists; mobile nav works. No bugs found.
+
+## Goals / completed modifications / verification results
+
+### New features (mandatory: more features + more styling)
+
+1. **Focus-trap hook for dialogs** (recommended last round): new `useFocusTrap` hook (`hooks/use-focus-trap.ts`) — a reusable accessibility hook that traps Tab/Shift+Tab within a container, moves focus in on mount, and restores focus to the previously-focused element on unmount. Applied to the WinScreen (custom overlay, not a Radix Dialog). Note: shadcn/Radix Dialogs already have built-in focus trapping, so the hook specifically targets custom overlays like WinScreen. Verified: WinScreen renders without errors; focus is managed within the card.
+
+2. **Guided tour/onboarding** (recommended last round): new `GuidedTour` component with 7 steps (Welcome → Solo → Daily → Guide → Overview → Achievements → Settings), each with a gradient-accented icon, title, description, progress dots (clickable to jump steps), Prev/Next/Skip buttons, and a step counter. Shows automatically after onboarding completion when `tourSeen` is false (tracked via a new `tourSeen` flag in OnboardingState). New store actions: `completeTour()` (marks seen), `resetTour()` (re-shows). A "Repetir tour / Replay tour" button in Settings > About section calls `resetTour()` to re-trigger. Added 23 translation keys (tour.*). Verified: tour appears after onboarding, steps navigate (1→2→3), Skip closes it, Replay tour in Settings reopens it.
+
+3. **Puzzle archive view** (recommended last round): new "Arquivo de quebra-cabeças / Puzzle archive" route (accessible via a "Ver arquivo / View archive" button on the Lobby's Puzzle of the Week card). New `ArchiveView` showing the last 12 weeks' puzzles — each card has a Crown icon, week label, date range, difficulty, and a Play button. The current week is highlighted with a chart-4 ring + "Atual/Current" badge + blurred glow. Clicking Play generates the deterministic puzzle from the week seed and loads it into Solo via the practice-board mechanism. Added 7 archive.* translation keys + 1 lobby.viewArchive key. Verified: archive renders with 12 week cards, current week highlighted, clicking Play loads an 81-cell board with the practice badge.
+
+### Styling polish (mandatory: more styling)
+- Guided tour: gradient-accented icon badges per step (primary/emerald/teal/amber/chart-4/warning/muted), clickable progress dots with active/Inactive states, smooth transitions, step counter.
+- Puzzle archive: current week highlighted with chart-4 ring + blurred glow, difficulty-colored Crown icons, date-range display with Calendar icon, hover border + shadow.
+- Settings replay-tour card: primary-tinted border/background, GraduationCap icon, description + button.
+- WinScreen: focus-trap applied (accessibility improvement).
+
+### Verification
+- ESLint clean throughout.
+- agent-browser confirmed: guided tour appears after onboarding (7 steps, navigation works, skip closes, replay reopens); archive renders with 12 cards + current-week highlight; archived puzzle loads (81 cells + practice badge); no runtime/console errors.
+
+## Unresolved issues / risks / next-phase recommendations
+- The guided tour is a dialog-based step-through (not a spotlight on actual UI elements) — simpler and more robust, but less visually connected to the real UI. A future round could add a spotlight overlay.
+- The puzzle archive generates puzzles on-the-fly from week seeds (no persistence needed), which means past boards are always available. However, records for past weeks aren't tracked (the puzzle loads as practice mode, not as a recorded game).
+- Recommended next round: (a) daily calendar click-to-replay past days; (b) a "streak freeze" cosmetic item; (c) view transition animations (framer-motion page transitions); (d) a per-mode stats comparison view; (e) keyboard shortcut to cycle views.
+- The scheduled 15-min cron (id 457699) continues to drive autonomous QA + feature work.

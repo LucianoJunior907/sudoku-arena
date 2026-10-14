@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Trophy, Clock, AlertTriangle, Lightbulb, Sparkles, Star } from "lucide-react";
@@ -10,6 +10,7 @@ import { useAppStore } from "@/lib/store/app-store";
 import type { Difficulty } from "@/lib/sudoku/types";
 import { formatTime } from "@/lib/sudoku/saved-game";
 import { ACHIEVEMENTS } from "@/lib/progression/achievements";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
 
 export function WinScreen({
   difficulty,
@@ -31,6 +32,8 @@ export function WinScreen({
   const { t, locale } = useI18n();
   const level = useAppStore((s) => s.level);
   const stats = useAppStore((s) => s.stats);
+  const cardRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(cardRef, true);
 
   const isRecord = xpResult?.isRecord ?? false;
 
@@ -71,7 +74,7 @@ export function WinScreen({
         ))}
       </div>
 
-      <Card className="relative w-full max-w-md overflow-hidden border-primary/30 p-6 animate-float-up">
+      <Card ref={cardRef} className="relative w-full max-w-md overflow-hidden border-primary/30 p-6 animate-float-up">
         <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-primary via-[var(--warning)] to-primary shimmer" />
         <div className="flex flex-col items-center text-center">
           <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--warning)]/15 animate-pop">

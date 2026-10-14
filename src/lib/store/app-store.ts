@@ -32,6 +32,7 @@ export type RouteId =
   | "achievements"
   | "overview"
   | "records"
+  | "archive"
   | "settings";
 
 export type ThemePref = "light" | "dark" | "system";
@@ -110,6 +111,7 @@ export interface LevelUpEvent {
 
 export interface OnboardingState {
   completed: boolean;
+  tourSeen: boolean;
 }
 
 /* ------------------------------------------------------------------ */
@@ -209,6 +211,8 @@ interface AppState {
   // onboarding
   onboarding: OnboardingState;
   completeOnboarding: (locale: Locale) => void;
+  completeTour: () => void;
+  resetTour: () => void;
 
   // profile
   profile: LocalProfile;
@@ -299,13 +303,23 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ settings: next });
   },
 
-  onboarding: { completed: false },
+  onboarding: { completed: false, tourSeen: false },
   completeOnboarding: (locale) => {
-    const onboarding = { completed: true };
+    const onboarding = { completed: true, tourSeen: false };
     const settings = { ...get().settings, locale };
     localPersistence.set(KEYS.onboarding, onboarding);
     localPersistence.set(KEYS.settings, settings);
     set({ onboarding, settings });
+  },
+  completeTour: () => {
+    const onboarding = { ...get().onboarding, tourSeen: true };
+    localPersistence.set(KEYS.onboarding, onboarding);
+    set({ onboarding });
+  },
+  resetTour: () => {
+    const onboarding = { ...get().onboarding, tourSeen: false };
+    localPersistence.set(KEYS.onboarding, onboarding);
+    set({ onboarding });
   },
 
   profile: defaultProfile(),
@@ -335,7 +349,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const stats = localPersistence.get<StatsByMode>(KEYS.stats, emptyStats());
     const history = localPersistence.get<HistoryEntry[]>(KEYS.history, []);
     const dailyRecords = localPersistence.get<DailyRecord[]>(KEYS.daily, []);
-    const onboarding = localPersistence.get<OnboardingState>(KEYS.onboarding, { completed: false });
+    const onboarding = localPersistence.get<OnboardingState>(KEYS.onboarding, { completed: false, tourSeen: false });
     const streak = localPersistence.get(KEYS.streak, { count: 0, lastDate: null });
     const unlockedAchievements = localPersistence.get<string[]>(KEYS.achievements, []);
     const level = levelFromXp(profile.totalXp).level;
@@ -538,7 +552,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       stats: emptyStats(),
       history: [],
       dailyRecords: [],
-      onboarding: { completed: false },
+      onboarding: { completed: false, tourSeen: false },
       streak: { count: 0, lastDate: null },
       level: 1,
       levelUps: [],

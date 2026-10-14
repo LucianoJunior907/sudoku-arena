@@ -236,29 +236,34 @@ export function LobbyView() {
               <p className="text-xs text-muted-foreground">{t("lobby.puzzleOfWeekDesc")}</p>
             </div>
           </div>
-          <Button
-            onClick={() => {
-              // Deterministic seed from ISO week — same board for everyone on this version
-              const now = new Date();
-              const year = now.getFullYear();
-              const onejan = new Date(year, 0, 1);
-              const week = Math.ceil(((now.getTime() - onejan.getTime()) / 86400000 + onejan.getDay() + 1) / 7);
-              const seed = `week-${year}-W${week}-v1`;
-              const p = generatePuzzle("hard", seed);
-              setPracticeBoard({
-                puzzle: p.puzzle,
-                solution: p.solution,
-                notes: Array.from({ length: 81 }, () => []),
-                difficulty: "hard" as Difficulty,
-                seed,
-              });
-              setRoute("solo");
-            }}
-            className="gap-1.5"
-          >
-            <Play className="h-4 w-4" />
-            {t("lobby.playWeek")}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => {
+                // Deterministic seed from ISO week — same board for everyone on this version
+                const now = new Date();
+                const year = now.getFullYear();
+                const onejan = new Date(year, 0, 1);
+                const week = Math.ceil(((now.getTime() - onejan.getTime()) / 86400000 + onejan.getDay() + 1) / 7);
+                const seed = `week-${year}-W${week}-v1`;
+                const p = generatePuzzle("hard", seed);
+                setPracticeBoard({
+                  puzzle: p.puzzle,
+                  solution: p.solution,
+                  notes: Array.from({ length: 81 }, () => []),
+                  difficulty: "hard" as Difficulty,
+                  seed,
+                });
+                setRoute("solo");
+              }}
+              className="gap-1.5"
+            >
+              <Play className="h-4 w-4" />
+              {t("lobby.playWeek")}
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setRoute("archive")}>
+              {t("lobby.viewArchive")}
+            </Button>
+          </div>
         </div>
       </Card>
     </div>
