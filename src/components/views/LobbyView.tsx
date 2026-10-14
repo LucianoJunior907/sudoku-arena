@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { levelFromXp } from "@/lib/progression/progression";
+import { generatePuzzle } from "@/lib/sudoku/engine";
 import {
   Sparkles,
   User,
@@ -19,6 +20,7 @@ import {
   Clock,
   Trophy,
   WifiOff,
+  Crown,
 } from "lucide-react";
 import type { Difficulty } from "@/lib/sudoku/types";
 import { getSavedGameSummary } from "@/lib/sudoku/saved-game";
@@ -26,6 +28,7 @@ import { getSavedGameSummary } from "@/lib/sudoku/saved-game";
 export function LobbyView() {
   const { t } = useI18n();
   const setRoute = useAppStore((s) => s.setRoute);
+  const setPracticeBoard = useAppStore((s) => s.setPracticeBoard);
   const profile = useAppStore((s) => s.profile);
   const level = useAppStore((s) => s.level);
   const streak = useAppStore((s) => s.streak);
@@ -218,6 +221,46 @@ export function LobbyView() {
           </div>
         </Card>
       </div>
+
+      {/* Puzzle of the Week */}
+      <Card className="relative overflow-hidden border-[var(--chart-4)]/30 p-5">
+        <div className="absolute inset-0 bg-gradient-to-r from-[var(--chart-4)]/10 via-transparent to-[var(--warning)]/10" />
+        <div className="absolute -right-6 -top-6 h-32 w-32 rounded-full bg-[var(--chart-4)]/15 blur-2xl" />
+        <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--chart-4)]/15 text-[var(--chart-4)]">
+              <Crown className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="font-semibold">{t("lobby.puzzleOfWeek")}</p>
+              <p className="text-xs text-muted-foreground">{t("lobby.puzzleOfWeekDesc")}</p>
+            </div>
+          </div>
+          <Button
+            onClick={() => {
+              // Deterministic seed from ISO week — same board for everyone on this version
+              const now = new Date();
+              const year = now.getFullYear();
+              const onejan = new Date(year, 0, 1);
+              const week = Math.ceil(((now.getTime() - onejan.getTime()) / 86400000 + onejan.getDay() + 1) / 7);
+              const seed = `week-${year}-W${week}-v1`;
+              const p = generatePuzzle("hard", seed);
+              setPracticeBoard({
+                puzzle: p.puzzle,
+                solution: p.solution,
+                notes: Array.from({ length: 81 }, () => []),
+                difficulty: "hard" as Difficulty,
+                seed,
+              });
+              setRoute("solo");
+            }}
+            className="gap-1.5"
+          >
+            <Play className="h-4 w-4" />
+            {t("lobby.playWeek")}
+          </Button>
+        </div>
+      </Card>
     </div>
   );
 }
