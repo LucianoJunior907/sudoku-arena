@@ -1,13 +1,15 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n/context";
 import { useAppStore, localDivision } from "@/lib/store/app-store";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { NeedsBackendBanner } from "@/components/common/ComingSoon";
-import { BarChart3, Trophy, Crown, Medal, Award } from "lucide-react";
+import { Avatar } from "@/components/common/Avatar";
+import { BarChart3, Trophy, Crown, Medal, Award, RefreshCw, Loader2, Wifi } from "lucide-react";
 import { DIVISIONS } from "@/lib/progression/progression";
 import { formatTime } from "@/lib/sudoku/saved-game";
+import { fetchGlobalLeaderboard, type LeaderboardEntry } from "@/lib/supabase/matches";
 import { cn } from "@/lib/utils";
 
 const DIV_LABEL_KEYS = {
@@ -23,7 +25,7 @@ const DIV_LABEL_KEYS = {
 const DIV_ICONS = [Medal, Medal, Award, Award, Crown, Crown, Crown];
 
 export function LeaderboardView() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const profile = useAppStore((s) => s.profile);
   const stats = useAppStore((s) => s.stats);
   const level = useAppStore((s) => s.level);
@@ -33,6 +35,33 @@ export function LeaderboardView() {
     stats.solo.easy.wins + stats.solo.medium.wins + stats.solo.hard.wins + stats.solo.expert.wins;
   const soloPlayed =
     stats.solo.easy.played + stats.solo.medium.played + stats.solo.hard.played + stats.solo.expert.played;
+
+  const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadLeaderboard = async () => {
+    setLoading(true);
+    setError(null);
+    const data = await fetchGlobalLeaderboard(50);
+    setEntries(data);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      const data = await fetchGlobalLeaderboard(50);
+      if (!cancelled) {
+        setEntries(data);
+        setLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -44,9 +73,15 @@ export function LeaderboardView() {
         <p className="mt-1 text-sm text-muted-foreground">{t("leaderboard.subtitle")}</p>
       </div>
 
-      <NeedsBackendBanner noteKey="leaderboard.needsBackend" />
+      {/* Online indicator */}
+      <div className="flex items-center gap-2 rounded-lg border border-[var(--success)]/30 bg-[var(--success)]/5 p-3 text-sm">
+        <Wifi className="h-4 w-4 text-[var(--success)]" />
+        <span className="font-medium text-[var(--success)]">
+          {locale === "pt-BR" ? "Ranking global online!" : "Global leaderboard online!"}
+        </span>
+      </div>
 
-      {/* Your rank card (local only) */}
+      {/* Your rank card (local) */}
       <Card className="p-5">
         <p className="mb-1 text-sm font-medium">{t("leaderboard.yourRank")}</p>
         <p className="text-xs text-muted-foreground">{t("profile.localOnly")}</p>
@@ -58,22 +93,79 @@ export function LeaderboardView() {
         </div>
       </Card>
 
-      {/* Global leaderboard (empty / needs backend) */}
+      {/* Global leaderboard (from Supabase) */}
       <Card className="p-5">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="flex items-center gap-2 font-semibold">
             <Trophy className="h-4 w-4 text-[var(--warning)]" />
             {t("leaderboard.title")}
           </h3>
-          <span className="text-xs text-muted-foreground">{t("leaderboard.season")}: 1</span>
+          <Button variant="ghost" size="sm" onClick={loadLeaderboard} disabled={loading}>
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          </Button>
         </div>
-        <div className="flex h-48 flex-col items-center justify-center rounded-lg border border-dashed border-border text-center">
-          <Crown className="mb-2 h-8 w-8 text-muted-foreground/40" />
-          <p className="text-sm font-medium text-muted-foreground">{t("leaderboard.needsBackend")}</p>
-          <p className="mt-1 max-w-sm text-xs text-muted-foreground/70">
-            {t("app.localModeDesc")}
-          </p>
-        </div>
+
+        {loading ? (
+          <div className="flex h-48 items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : entries.length === 0 ? (
+          <div className="flex h-48 flex-col items-center justify-center rounded-lg border border-dashed border-border text-center">
+            <Crown className="mb-2 h-8 w-8 text-muted-foreground/40" />
+            <p className="text-sm font-medium text-muted-foreground">
+              {locale === "pt-BR" ? "Nenhuma partida registrada ainda." : "No matches recorded yet."}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground/70">
+              {locale === "pt-BR" ? "Entre e jogue para aparecer no ranking!" : "Sign in and play to appear on the leaderboard!"}
+            </p>
+          </div>
+        ) : (
+          <div className="scrollbar-thin max-h-96 overflow-y-auto">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-card">
+                <tr className="border-b text-left text-xs text-muted-foreground">
+                  <th className="px-3 py-2">#</th>
+                  <th className="px-3 py-2">{locale === "pt-BR" ? "Jogador" : "Player"}</th>
+                  <th className="px-3 py-2">{t("history.difficulty")}</th>
+                  <th className="px-3 py-2 text-right">{t("daily.score")}</th>
+                  <th className="px-3 py-2 text-right">{t("history.time")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {entries.map((entry, i) => (
+                  <tr key={i} className="border-b last:border-0 hover:bg-muted/30">
+                    <td className="px-3 py-2">
+                      <span className={cn(
+                        "flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold",
+                        i === 0 ? "bg-[var(--warning)]/15 text-[var(--warning)]" :
+                        i === 1 ? "bg-muted-foreground/15 text-muted-foreground" :
+                        i === 2 ? "bg-[#cd7f32]/15 text-[#cd7f32]" :
+                        "text-muted-foreground"
+                      )}>
+                        {i + 1}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <Avatar seed={entry.avatarSeed} size={28} className="rounded-md" />
+                        <span className="font-medium">{entry.displayName}</span>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 text-muted-foreground">
+                      {t(`difficulty.${entry.difficulty}` as never)}
+                    </td>
+                    <td className="px-3 py-2 text-right font-mono font-semibold tabular-nums text-primary">
+                      {entry.score}
+                    </td>
+                    <td className="px-3 py-2 text-right font-mono text-muted-foreground tabular-nums">
+                      {formatTime(entry.elapsedSec)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
 
       {/* Divisions ladder */}
@@ -94,7 +186,7 @@ export function LeaderboardView() {
                 )}
               >
                 <Icon className="mb-1 h-5 w-5" style={{ color: isPassed ? d.color : "var(--muted-foreground)" }} />
-                <p className="text-xs font-medium">{t(DIV_LABEL_KEYS[d.id])}</p>
+                <p className="text-xs font-medium">{t(DIV_LABEL_KEYS[d.id as keyof typeof DIV_LABEL_KEYS])}</p>
                 <p className="text-[10px] text-muted-foreground">{d.min}+</p>
                 {isCurrent && (
                   <span className="mt-1 rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-semibold text-primary-foreground">

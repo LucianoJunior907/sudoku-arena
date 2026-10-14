@@ -20,6 +20,8 @@ import { useAppStore } from "@/lib/store/app-store";
 import type { GameMode } from "@/lib/progression/progression";
 import { computeDailyScore } from "@/lib/progression/progression";
 import { playSound, setSoundEnabled, unlockAudio } from "@/lib/audio/sounds";
+import { saveMatchToCloud, saveDailyToCloud } from "@/lib/supabase/matches";
+import { supabase } from "@/lib/supabase/client";
 
 export type GameStatus = "idle" | "playing" | "paused" | "won";
 
@@ -546,6 +548,47 @@ export function useSudokuGame(mode: GameMode = "solo") {
       lastXpResultRef.current = finalResult;
       // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot side effect on win transition
       setXpResult(finalResult);
+
+      // Save to Supabase cloud if user is logged in (fire-and-forget, non-blocking).
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!session?.user) return;
+        const userId = session.user.id;
+        // Save match
+        saveMatchToCloud(userId, {
+          mode: state.mode,
+          difficulty: state.difficulty,
+          elapsedSec: state.elapsedSec,
+          errors: state.mistakes,
+          hintsUsed: state.hintsUsed,
+          completed: true,
+          xpEarned: finalResult.xp + (finalResult.bonusXp ?? 0),
+          score: state.mode === "daily" ? computeDailyScore({
+            difficulty: state.difficulty,
+            elapsedSec: state.elapsedSec,
+            errors: state.mistakes,
+            hintsUsed: state.hintsUsed,
+            completed: true,
+          }) : finalResult.xp,
+          isRecord: finalResult.isRecord,
+        });
+        // Save daily record if daily mode
+        if (state.mode === "daily" && state.dailyDate) {
+          saveDailyToCloud(userId, {
+            date: state.dailyDate,
+            difficulty: state.difficulty,
+            completed: true,
+            elapsedSec: state.elapsedSec,
+            errors: state.mistakes,
+            score: computeDailyScore({
+              difficulty: state.difficulty,
+              elapsedSec: state.elapsedSec,
+              errors: state.mistakes,
+              hintsUsed: state.hintsUsed,
+              completed: true,
+            }),
+          });
+        }
+      });
     }
   }, [state.status, state.mode, state.difficulty, state.elapsedSec, state.mistakes, state.hintsUsed, state.dailyDate, recordGame, recordDaily, checkAchievements, mode]);
 
