@@ -31,6 +31,7 @@ export type RouteId =
   | "leaderboard"
   | "achievements"
   | "overview"
+  | "records"
   | "settings";
 
 export type ThemePref = "light" | "dark" | "system";

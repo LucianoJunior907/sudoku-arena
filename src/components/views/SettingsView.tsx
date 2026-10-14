@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { useAppStore } from "@/lib/store/app-store";
 import { useI18n } from "@/lib/i18n/context";
 import { BOARD_THEMES } from "@/lib/progression/board-themes";
+import { ResetProgressDialog } from "@/components/settings/ResetProgressDialog";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -28,6 +30,7 @@ import { cn } from "@/lib/utils";
 export function SettingsView() {
   const { t, locale, setLocale } = useI18n();
   const settings = useAppStore((s) => s.settings);
+  const [resetOpen, setResetOpen] = useState(false);
   const setSettings = useAppStore((s) => s.setSettings);
   const clearAllData = useAppStore((s) => s.clearAllData);
   const exportData = useAppStore((s) => s.exportData);
@@ -65,11 +68,13 @@ export function SettingsView() {
   };
 
   const handleClear = () => {
-    if (window.confirm(t("settings.confirmClear"))) {
-      clearAllData();
-      toast.success(t("settings.dataCleared"));
-      setTimeout(() => window.location.reload(), 600);
-    }
+    setResetOpen(true);
+  };
+
+  const handleResetConfirm = () => {
+    clearAllData();
+    toast.success(t("settings.dataCleared"));
+    setTimeout(() => window.location.reload(), 600);
   };
 
   const themes = [
@@ -272,6 +277,8 @@ export function SettingsView() {
           {t("app.localModeDesc")}
         </p>
       </Card>
+
+      <ResetProgressDialog open={resetOpen} onOpenChange={setResetOpen} onConfirm={handleResetConfirm} />
     </div>
   );
 }
