@@ -273,3 +273,35 @@ export const GUIDE_TECHNIQUES: GuideTechnique[] = [
 export function techniqueTitle(t: GuideTechnique, locale: Locale): string {
   return t.title[locale];
 }
+
+/**
+ * Convert a technique's CellMark illustration into a playable puzzle + solution + notes.
+ *
+ * - `given` + `solved` + `target` cells become givens (locked).
+ * - `candidate` + `eliminate` cells start empty; candidate notes are seeded.
+ * - The solution is derived by running the engine solver on the givens. If the
+ *   illustration isn't a solvable puzzle (partial diagrams), returns null.
+ */
+import { solve as solveBoard } from "@/lib/sudoku/engine";
+import { emptyBoard } from "@/lib/sudoku/types";
+
+export function techniqueToPractice(t: GuideTechnique): {
+  puzzle: number[];
+  solution: number[];
+  notes: number[][];
+} | null {
+  const puzzle = emptyBoard();
+  const notes: number[][] = Array.from({ length: 81 }, () => []);
+  for (const m of t.cells) {
+    if (m.kind === "given" || m.kind === "solved" || m.kind === "target") {
+      puzzle[m.index] = m.value;
+    } else if (m.kind === "candidate" || m.kind === "eliminate") {
+      if (m.notes && m.notes.length > 0) {
+        notes[m.index] = m.notes.slice();
+      }
+    }
+  }
+  const solution = solveBoard(puzzle);
+  if (!solution) return null;
+  return { puzzle: puzzle.slice(), solution: solution.slice(), notes };
+}

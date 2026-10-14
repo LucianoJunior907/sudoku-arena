@@ -46,6 +46,7 @@ export interface GameState {
   redo: GameHistoryEntry[];
   startedAt: string;
   showMistakes: boolean;
+  highlightDigit: number; // 0 = none; digit hovered on the number pad
 }
 
 type Action =
@@ -61,6 +62,8 @@ type Action =
   | { type: "TOGGLE_NOTES_MODE" }
   | { type: "AUTO_NOTES" }
   | { type: "CHECK" }
+  | { type: "SET_HIGHLIGHT_DIGIT"; digit: number }
+  | { type: "SET_NOTES"; index: number; notes: number[] }
   | { type: "PAUSE" }
   | { type: "RESUME" }
   | { type: "TICK" }
@@ -95,6 +98,7 @@ function freshState(): GameState {
     redo: [],
     startedAt: "",
     showMistakes: false,
+    highlightDigit: 0,
   };
 }
 
@@ -176,6 +180,14 @@ function reducer(state: GameState, action: Action): GameState {
     case "CHECK":
       if (state.status !== "playing") return state;
       return { ...state, showMistakes: true };
+    case "SET_HIGHLIGHT_DIGIT":
+      return { ...state, highlightDigit: action.digit };
+    case "SET_NOTES": {
+      if (state.status !== "playing") return state;
+      const notes = state.notes.map((n) => n.slice());
+      notes[action.index] = action.notes.slice();
+      return { ...state, notes };
+    }
     case "PAUSE":
       if (state.status !== "playing") return state;
       return { ...state, status: "paused" };
@@ -597,6 +609,35 @@ export function useSudokuGame(mode: GameMode = "solo") {
     [settings.maxHints, settings.maxErrors]
   );
 
+  /** Load a custom puzzle (e.g. a Guide technique illustration) into practice mode. */
+  const startPractice = useCallback(
+    (puzzle: Board, solution: Board, difficulty: Difficulty, seed: string, initialNotes?: Notes) => {
+      dispatch({
+        type: "NEW",
+        mode: "guide",
+        puzzle,
+        solution,
+        difficulty,
+        seed,
+        maxHints: settings.maxHints,
+        maxErrors: 0, // practice: unlimited errors
+        dailyDate: null,
+      });
+      // optionally seed notes from the technique illustration
+      if (initialNotes) {
+        for (let i = 0; i < 81; i++) {
+          if (initialNotes[i].length > 0 && puzzle[i] === 0) {
+            dispatch({ type: "SET_NOTES", index: i, notes: initialNotes[i] });
+          }
+        }
+      }
+      recordedRef.current = false;
+      lastXpResultRef.current = null;
+      setXpResult(null);
+    },
+    [settings.maxHints]
+  );
+
   const select = useCallback((index: number) => { playSound("select"); dispatch({ type: "SELECT", index }); }, []);
   const setValue = useCallback(
     (value: number) => {
@@ -628,6 +669,7 @@ export function useSudokuGame(mode: GameMode = "solo") {
   const toggleNotesMode = useCallback(() => dispatch({ type: "TOGGLE_NOTES_MODE" }), []);
   const autoNotes = useCallback(() => { playSound("note"); dispatch({ type: "AUTO_NOTES" }); }, []);
   const check = useCallback(() => { playSound("select"); dispatch({ type: "CHECK" }); }, []);
+  const setHighlightDigit = useCallback((digit: number) => dispatch({ type: "SET_HIGHLIGHT_DIGIT", digit }), []);
   const pause = useCallback(() => dispatch({ type: "PAUSE" }), []);
   const resume = useCallback(() => dispatch({ type: "RESUME" }), []);
   const restart = useCallback(() => {
@@ -651,6 +693,7 @@ export function useSudokuGame(mode: GameMode = "solo") {
     xpResult,
     startNew,
     startDaily,
+    startPractice,
     select,
     setValue,
     toggleNote,
@@ -661,6 +704,7 @@ export function useSudokuGame(mode: GameMode = "solo") {
     toggleNotesMode,
     autoNotes,
     check,
+    setHighlightDigit,
     pause,
     resume,
     restart,

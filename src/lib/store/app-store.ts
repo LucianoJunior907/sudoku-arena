@@ -44,6 +44,7 @@ export interface AppSettings {
   maxErrors: number; // 0 = unlimited
   maxHints: number;
   soundEnabled: boolean;
+  boardTheme: string; // BoardThemeId
 }
 
 export interface LocalProfile {
@@ -123,6 +124,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   maxErrors: 5,
   maxHints: 3,
   soundEnabled: true,
+  boardTheme: "emerald",
 };
 
 function emptyDifficultyStats(): ModeStat {
@@ -184,6 +186,14 @@ export interface AchievementToast {
   createdAt: number;
 }
 
+export interface PracticeBoard {
+  puzzle: number[];
+  solution: number[];
+  notes: number[][];
+  difficulty: Difficulty;
+  seed: string;
+}
+
 interface AppState {
   // navigation
   route: RouteId;
@@ -223,6 +233,10 @@ interface AppState {
   achievementToasts: AchievementToast[];
   dismissAchievementToast: (id: string) => void;
   checkAchievements: (lastGame: RecordGameInput) => { newlyUnlocked: string[]; bonusXp: number };
+
+  // practice board (transient — set by Guide, consumed by Solo on mount)
+  practiceBoard: PracticeBoard | null;
+  setPracticeBoard: (b: PracticeBoard | null) => void;
 
   // derived
   level: number;
@@ -309,6 +323,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   achievementToasts: [],
   dismissAchievementToast: (id) =>
     set({ achievementToasts: get().achievementToasts.filter((a) => a.id !== id) }),
+  practiceBoard: null,
+  setPracticeBoard: (b) => set({ practiceBoard: b }),
   level: 1,
 
   hydrate: () => {
@@ -526,6 +542,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       levelUps: [],
       unlockedAchievements: [],
       achievementToasts: [],
+      practiceBoard: null,
     });
   },
 

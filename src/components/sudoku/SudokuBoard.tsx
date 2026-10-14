@@ -14,6 +14,8 @@ export interface SudokuBoardProps {
   conflicts: Set<number>;
   wrongCells: Set<number>;
   selectedIndex: number;
+  highlightDigit: number;
+  themeVars?: Record<string, string>;
   settings: {
     highlightPeers: boolean;
     highlightSame: boolean;
@@ -30,6 +32,8 @@ export function SudokuBoard({
   conflicts,
   wrongCells,
   selectedIndex,
+  highlightDigit,
+  themeVars,
   settings,
   onSelect,
 }: SudokuBoardProps) {
@@ -42,19 +46,32 @@ export function SudokuBoard({
   }, [selectedIndex, settings.highlightPeers]);
 
   const sameSet = useMemo(() => {
-    if (!settings.highlightSame || selectedValue === 0) return new Set<number>();
+    const digit = highlightDigit || selectedValue;
+    if (!settings.highlightSame || digit === 0) return new Set<number>();
     const s = new Set<number>();
     for (let i = 0; i < 81; i++) {
-      if (board[i] === selectedValue) s.add(i);
+      if (board[i] === digit) s.add(i);
     }
     return s;
-  }, [selectedValue, board, settings.highlightSame]);
+  }, [selectedValue, highlightDigit, board, settings.highlightSame]);
+
+  // Cells that contain the highlight digit as a candidate note.
+  const candidateSet = useMemo(() => {
+    const digit = highlightDigit || 0;
+    if (digit === 0) return new Set<number>();
+    const s = new Set<number>();
+    for (let i = 0; i < 81; i++) {
+      if (board[i] === 0 && notes[i].includes(digit)) s.add(i);
+    }
+    return s;
+  }, [highlightDigit, board, notes]);
 
   return (
     <div
       className="relative mx-auto aspect-square w-full max-w-[min(92vw,30rem)] select-none touch-manipulation"
       role="grid"
       aria-label="Sudoku board"
+      style={themeVars as React.CSSProperties | undefined}
     >
       <div className="grid h-full w-full grid-cols-9 grid-rows-9 overflow-hidden rounded-lg border-2 border-[var(--cell-border-thick)] bg-[var(--cell-border-thick)] gap-px shadow-lg">
         {board.map((value, i) => {
@@ -66,6 +83,8 @@ export function SudokuBoard({
           const isSame = sameSet.has(i);
           const isConflict = settings.autoCheck && conflicts.has(i);
           const isWrong = wrongCells.has(i);
+          const isCandidate = candidateSet.has(i);
+          const highlightVal = highlightDigit || 0;
 
           // thick borders between 3x3 boxes
           const borderClasses = cn(
@@ -86,6 +105,8 @@ export function SudokuBoard({
               isSame={isSame}
               isConflict={isConflict}
               isWrong={isWrong}
+              isCandidate={isCandidate}
+              highlightDigit={highlightVal}
               borderClasses={borderClasses}
               onClick={() => onSelect(i)}
               ariaLabel={`${t("board.cell")} ${row + 1}, ${col + 1}${value ? `, ${t("board.value")} ${value}` : `, ${t("board.empty")}`}`}
@@ -107,6 +128,8 @@ function Cell({
   isSame,
   isConflict,
   isWrong,
+  isCandidate,
+  highlightDigit,
   borderClasses,
   onClick,
   ariaLabel,
@@ -120,6 +143,8 @@ function Cell({
   isSame: boolean;
   isConflict: boolean;
   isWrong: boolean;
+  isCandidate: boolean;
+  highlightDigit: number;
   borderClasses: string;
   onClick: () => void;
   ariaLabel: string;
@@ -132,7 +157,8 @@ function Cell({
     isSelected && "bg-[var(--cell-bg-selected)] hover:bg-[var(--cell-bg-selected)]",
     isWrong && "bg-[var(--cell-bg-error)] hover:bg-[var(--cell-bg-error)]",
     isConflict && "bg-[var(--cell-bg-error)] hover:bg-[var(--cell-bg-error)]",
-    isHint && !isConflict && !isWrong && "bg-[var(--cell-bg-hint)] hover:bg-[var(--cell-bg-hint)]"
+    isHint && !isConflict && !isWrong && "bg-[var(--cell-bg-hint)] hover:bg-[var(--cell-bg-hint)]",
+    isCandidate && !isSame && "bg-[var(--cell-bg-peer)]"
   );
 
   const text = cn(
@@ -164,24 +190,27 @@ function Cell({
       {value !== 0 ? (
         <span className={cn(text, "animate-pop")}>{value}</span>
       ) : notes.length > 0 ? (
-        <NotesGrid notes={notes} />
+        <NotesGrid notes={notes} highlightDigit={highlightDigit} />
       ) : null}
     </button>
   );
 }
 
-function NotesGrid({ notes }: { notes: number[] }) {
+function NotesGrid({ notes, highlightDigit }: { notes: number[]; highlightDigit: number }) {
   return (
     <div className="grid h-full w-full grid-cols-3 grid-rows-3 p-0.5">
       {Array.from({ length: 9 }, (_, k) => {
         const n = k + 1;
         const has = notes.includes(n);
+        const isHi = highlightDigit === n && has;
         return (
           <span
             key={n}
             className={cn(
-              "flex items-center justify-center text-[clamp(0.4rem,1.6vw,0.6rem)] font-medium",
-              has ? "text-muted-foreground opacity-80" : "opacity-0"
+              "flex items-center justify-center rounded-sm text-[clamp(0.4rem,1.6vw,0.6rem)] font-medium transition-colors",
+              !has && "opacity-0",
+              has && !isHi && "text-muted-foreground opacity-80",
+              isHi && "bg-primary/20 font-bold text-primary"
             )}
           >
             {has ? n : ""}

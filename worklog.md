@@ -251,3 +251,39 @@ Verification: ESLint clean throughout; agent-browser confirmed all features work
 - Achievements are local-only and user-resettable (consistent with the local-phase stance; not an official system).
 - Recommended next round: (a) per-cell "candidate toggle" highlight when hovering a number-pad digit (highlight all cells containing/able-to-contain that digit); (b) a "daily calendar" heat-map view of streak; (c) board theme variants (cosmetic beyond light/dark); (d) a practice mode from Guide that loads the technique's exact mini-board into Solo.
 - The scheduled 15-min cron (id 457699) continues to drive autonomous QA + feature work.
+
+---
+Task ID: 8 (cron webDevReview round 2)
+Agent: main
+Task: QA pass + 4 new features (candidate hover, streak calendar, guide practice, board themes) + bug fix.
+
+## Current project status / assessment
+- Project complete through Task 7 (Solo/Daily/Guide/Profile/History/Settings/Achievements + Duo/Ranked/Friends/Leaderboard needs-backend UIs + sound + charts + solo tools + i18n + light/dark). Dev server healthy on :3000, lint clean, 99→108 source files.
+- QA pass via agent-browser: confirmed full Solo win flow (win→XP→achievements), auto-notes (45 cells filled), check tool, achievements view (4/15 after a win), profile charts (2 recharts surfaces). Found 1 real UX bug.
+
+## Goals / completed modifications / verification results
+
+### Bug fix (priority)
+- **Toast pointer-events covering WinScreen buttons**: LevelUpToast and AchievementToast were `fixed inset-x-0 z-[100]` (higher than WinScreen z-50) with full-width containers, intercepting clicks across the bottom/top strip and making "Play again"/"Back" buttons unclickable until toasts auto-dismissed (~8-10s). Fixed by adding `pointer-events-none` to the wrapper divs and `pointer-events-auto` to the inner Card — clicks now pass through empty toast areas to the win screen beneath. Verified: "Play again" is immediately clickable with toasts visible.
+
+### New features (mandatory: more features + more styling)
+
+1. **Per-cell candidate highlight on number-pad hover** (recommended last round): added `highlightDigit` to game state + `SET_HIGHLIGHT_DIGIT` action + `setHighlightDigit` callback. NumberPad buttons emit `onMouseEnter/Leave/Focus/Blur` → `onHoverDigit`. SudokuBoard's `sameSet` and a new `candidateSet` now respond to `highlightDigit`: cells containing the digit get the "same-value" bg, and empty cells with that digit as a candidate note get a peer-tinted bg with the specific candidate digit highlighted (primary bg + bold) inside their NotesGrid. Hovering a number pad digit now visually traces every place that digit could go. NumberPad buttons also gained hover lift + shadow for polish.
+
+2. **Daily streak heat-map calendar** (recommended last round): new `StreakCalendar` component (GitHub-style contribution graph) showing 13 weeks × 7 days of completed daily challenges, with 5 intensity levels (muted → primary), month labels, weekday labels, today ring, hover scale + tooltip, and a legend. Embedded in DailyView above the records table. Verified: 96 calendar cells render.
+
+3. **Guide → Solo practice mode** (recommended last round): added `techniqueToPractice()` utility that converts a technique's CellMark illustration into a playable puzzle+solution+notes (givens/solved/target → locked givens; candidate/eliminate → empty with seeded notes; solution derived via engine solver, returns null if unsolvable). Added `startPractice()` action + `SET_NOTES` reducer to the hook, a transient `practiceBoard` slot + `setPracticeBoard` in the store. GuideView's "Practice in Solo" button now sets the practice board and routes to Solo; SoloView consumes it on mount (one-shot ref guard) and shows a "Praticar" badge when in guide/practice mode. Solo difficulty selector also gained a "Guide practice" shortcut card. Verified: opening Regras article → "Praticar no Solo" loads the technique's board into Solo with the practice badge, 81 cells render.
+
+4. **Board theme variants** (recommended last round): new `board-themes.ts` with 5 themes (Emerald/Ocean/Sunset/Rose/Monochrome) each defining CSS var overrides for cell-state colors. Added `boardTheme` to AppSettings (default emerald). SudokuBoard accepts a `themeVars` prop applied as inline style on the wrapper (scoped, doesn't affect global theme). SudokuGamePlay derives `boardThemeVars` from settings via `getBoardTheme()`. New board-theme picker in SettingsView (swatch + name, active highlight). Verified: picker renders all 5 themes with localized names.
+
+### Verification
+- ESLint clean throughout (fixed an import bug: `emptyBoard` is exported from `types.ts` not `engine.ts` — caught when the Guide practice feature broke the build, fixed immediately).
+- agent-browser confirmed: practice mode loads technique board (81 cells + "Praticar" badge), StreakCalendar renders (96 cells), board theme picker shows all 5 themes, toast pointer-events fix lets win-screen buttons be clicked immediately.
+- No runtime/console errors.
+
+## Unresolved issues / risks / next-phase recommendations
+- Some Guide technique illustrations are partial diagrams (not full solvable puzzles); `techniqueToPractice` returns null for those and falls back to a normal easy Solo game — acceptable, but a future round could craft dedicated solvable practice puzzles per technique.
+- Board themes currently recolor cell states; a future round could add full theme variants (background, number font, animations).
+- The daily streak calendar shows completed days but doesn't yet allow clicking a past day to replay it (daily is date-locked by design).
+- Recommended next round: (a) keyboard shortcut help overlay/modal; (b) "undo all notes" / "clear notes" tool; (c) export/import now includes the new settings (boardTheme) — verify; (d) a stats dashboard combining solo + daily + achievements into one overview.
+- The scheduled 15-min cron (id 457699) continues to drive autonomous QA + feature work.

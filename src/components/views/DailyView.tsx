@@ -5,6 +5,7 @@ import { useSudokuGame } from "@/hooks/use-sudoku-game";
 import { useAppStore } from "@/lib/store/app-store";
 import { useI18n } from "@/lib/i18n/context";
 import { SudokuGamePlay } from "@/components/sudoku/SudokuGamePlay";
+import { StreakCalendar } from "@/components/daily/StreakCalendar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -166,6 +167,9 @@ export function DailyView() {
           })}
         </div>
       </div>
+
+      {/* Streak heat-map calendar */}
+      <StreakCalendar records={dailyRecords} />
 
       {/* Records history */}
       <Card className="p-5">

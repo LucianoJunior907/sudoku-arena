@@ -1,13 +1,15 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { useSudokuGame } from "@/hooks/use-sudoku-game";
 import { useAppStore } from "@/lib/store/app-store";
 import { useI18n } from "@/lib/i18n/context";
 import { SudokuGamePlay } from "@/components/sudoku/SudokuGamePlay";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import type { Difficulty } from "@/lib/sudoku/types";
-import { Play } from "lucide-react";
+import { Play, GraduationCap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const DIFFICULTIES: { id: Difficulty; key: string; descKey: string; accent: string }[] = [
@@ -20,8 +22,27 @@ const DIFFICULTIES: { id: Difficulty; key: string; descKey: string; accent: stri
 export function SoloView() {
   const { t } = useI18n();
   const setRoute = useAppStore((s) => s.setRoute);
+  const practiceBoard = useAppStore((s) => s.practiceBoard);
+  const setPracticeBoard = useAppStore((s) => s.setPracticeBoard);
   const game = useSudokuGame("solo");
   const { state } = game;
+
+  // If a practice board was set (from Guide), load it once on mount.
+  const consumedPractice = useRef(false);
+  useEffect(() => {
+    if (consumedPractice.current) return;
+    if (practiceBoard && state.status === "idle") {
+      consumedPractice.current = true;
+      game.startPractice(
+        practiceBoard.puzzle,
+        practiceBoard.solution,
+        practiceBoard.difficulty,
+        practiceBoard.seed,
+        practiceBoard.notes
+      );
+      setPracticeBoard(null);
+    }
+  }, [practiceBoard, state.status, game, setPracticeBoard]);
 
   if (state.status === "idle") {
     return (
@@ -52,17 +73,39 @@ export function SoloView() {
             ))}
           </div>
         </div>
+
+        {/* Guide practice shortcut */}
+        <Card className="flex items-center gap-3 border-primary/30 bg-primary/5 p-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <GraduationCap className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium">{t("guide.practice")}</p>
+            <p className="text-xs text-muted-foreground">{t("guide.subtitle")}</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => setRoute("guide")}>
+            {t("nav.guide")}
+          </Button>
+        </Card>
       </div>
     );
   }
 
   return (
-    <SudokuGamePlay
-      game={game}
-      backLabel={t("solo.backToLobby")}
-      onExit={() => { game.exit(); setRoute("lobby"); }}
-      onPlayAgain={() => game.startNew(state.difficulty)}
-      onNewGame={() => game.startNew(state.difficulty)}
-    />
+    <div className="space-y-4">
+      {state.mode === "guide" && (
+        <Badge variant="secondary" className="gap-1">
+          <GraduationCap className="h-3 w-3" />
+          {t("guide.practice")}
+        </Badge>
+      )}
+      <SudokuGamePlay
+        game={game}
+        backLabel={t("solo.backToLobby")}
+        onExit={() => { game.exit(); setRoute("lobby"); }}
+        onPlayAgain={() => game.startNew(state.difficulty)}
+        onNewGame={() => game.startNew(state.difficulty)}
+      />
+    </div>
   );
 }

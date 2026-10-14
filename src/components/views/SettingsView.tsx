@@ -2,6 +2,7 @@
 
 import { useAppStore } from "@/lib/store/app-store";
 import { useI18n } from "@/lib/i18n/context";
+import { BOARD_THEMES } from "@/lib/progression/board-themes";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -189,6 +190,34 @@ export function SettingsView() {
               step={1}
               onValueChange={(v) => setSettings({ maxHints: v[0] })}
             />
+          </div>
+
+          {/* Board theme picker */}
+          <div>
+            <Label className="mb-2 block text-sm">{t("settings.boardTheme")}</Label>
+            <div className="flex flex-wrap gap-2">
+              {BOARD_THEMES.map((bt) => {
+                const active = settings.boardTheme === bt.id;
+                return (
+                  <button
+                    key={bt.id}
+                    onClick={() => setSettings({ boardTheme: bt.id })}
+                    className={cn(
+                      "flex items-center gap-2 rounded-lg border px-3 py-2 text-xs transition-colors",
+                      active
+                        ? "border-primary bg-primary/5 text-primary"
+                        : "border-border hover:bg-muted/50"
+                    )}
+                  >
+                    <span
+                      className="h-4 w-4 rounded-full ring-1 ring-border"
+                      style={{ background: bt.swatch }}
+                    />
+                    {locale === "pt-BR" ? bt.name["pt-BR"] : bt.name.en}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       </Card>
