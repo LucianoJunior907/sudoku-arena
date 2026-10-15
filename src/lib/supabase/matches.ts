@@ -27,33 +27,55 @@ export interface FriendEntry {
 /**
  * Fetch the global leaderboard from Supabase.
  * Returns top N completed matches with profile info.
+ * Uses two-step query: first fetch matches, then fetch profiles separately
+ * (avoids FK relationship issues).
  */
 export async function fetchGlobalLeaderboard(limit = 50): Promise<LeaderboardEntry[]> {
-  const { data, error } = await supabase
+  // Step 1: Fetch top matches
+  const { data: matches, error: mError } = await supabase
     .from("matches")
-    .select(`
-      id,
-      user_id,
-      mode,
-      difficulty,
-      elapsed_sec,
-      errors,
-      score,
-      created_at,
-      profiles!inner(display_name, avatar_seed)
-    `)
+    .select("id, user_id, mode, difficulty, elapsed_sec, errors, score, created_at")
     .eq("completed", true)
     .order("score", { ascending: false })
     .limit(limit);
 
-  if (error || !data) return [];
+  if (mError || !matches || matches.length === 0) return [];
 
-  return data.map((m: Record<string, unknown>) => {
-    const profile = m.profiles as Record<string, unknown>;
+  // Step 2: Fetch profiles for those users
+  const userIds = [...new Set(matches.map((m: Record<string, unknown>) => m.user_id as string))];
+  const { data: profiles, error: pError } = await supabase
+    .from("profiles")
+    .select("id, display_name, avatar_seed, username")
+    .in("id", userIds);
+
+  if (pError || !profiles) {
+    // Return matches without profile info if profiles fail
+    return matches.map((m: Record<string, unknown>) => ({
+      userId: m.user_id as string,
+      displayName: "Player",
+      avatarSeed: "default",
+      score: m.score as number,
+      mode: m.mode as string,
+      difficulty: m.difficulty as string,
+      elapsedSec: m.elapsed_sec as number,
+      errors: m.errors as number,
+      createdAt: m.created_at as string,
+    }));
+  }
+
+  // Build a profile lookup map
+  const profileMap = new Map<string, Record<string, unknown>>();
+  for (const p of profiles as Record<string, unknown>[]) {
+    profileMap.set(p.id as string, p);
+  }
+
+  // Merge matches with profiles
+  return matches.map((m: Record<string, unknown>) => {
+    const profile = profileMap.get(m.user_id as string) ?? {};
     return {
       userId: m.user_id as string,
-      displayName: (profile?.display_name as string) ?? "Player",
-      avatarSeed: (profile?.avatar_seed as string) ?? "default",
+      displayName: (profile.display_name as string) ?? "Player",
+      avatarSeed: (profile.avatar_seed as string) ?? "default",
       score: m.score as number,
       mode: m.mode as string,
       difficulty: m.difficulty as string,
@@ -193,67 +215,188 @@ export async function saveDailyToCloud(
 /**
  * Send a friend request.
  */
-export async function sendFriendRequest(userId: string, targetUserId: string): Promise<boolean> {
+export async function sendFriendRequest(userId: string, targetUserId: string): Promise<{ success: boolean; error?: string }> {
+  // Check if already friends or pending
+  const { data: existing } = await supabase
+    .from("friends")
+    .select("status")
+    .or(`and(user_id.eq.${userId},friend_id.eq.${targetUserId}),and(user_id.eq.${targetUserId},friend_id.eq.${userId})`)
+    .limit(1);
+
+  if (existing && existing.length > 0) {
+    const status = (existing[0] as Record<string, unknown>).status as string;
+    if (status === "accepted") return { success: false, error: "already_friends" };
+    if (status === "pending") return { success: false, error: "already_pending" };
+  }
+
   const { error } = await supabase.from("friends").insert({
     user_id: userId,
     friend_id: targetUserId,
     status: "pending",
   });
-  return !error;
+  if (error) {
+    // Duplicate key = already exists
+    if (error.code === "23505") return { success: false, error: "already_pending" };
+    return { success: false, error: error.message };
+  }
+  return { success: true };
 }
 
 /**
- * Fetch the user's friends list.
+ * Search for a user by username (for friend requests).
+ */
+export async function searchUserByUsername(username: string): Promise<{
+  found: boolean;
+  user?: { id: string; displayName: string; username: string; avatarSeed: string; rating: number };
+}> {
+  const { data, error } = await supabase.rpc("search_user_by_username", {
+    p_username: username,
+  });
+  if (error || !data) return { found: false };
+  const result = data as Record<string, unknown>;
+  if (!result.found) return { found: false };
+  const user = result.user as Record<string, unknown>;
+  return {
+    found: true,
+    user: {
+      id: user.id as string,
+      displayName: (user.display_name as string) ?? "Player",
+      username: (user.username as string) ?? "",
+      avatarSeed: (user.avatar_seed as string) ?? "default",
+      rating: (user.rating as number) ?? 0,
+    },
+  };
+}
+
+/**
+ * Check if a username is available.
+ */
+export async function checkUsernameAvailable(username: string): Promise<{ available: boolean; error?: string }> {
+  const { data, error } = await supabase.rpc("check_username_available", {
+    p_username: username,
+  });
+  if (error) return { available: false, error: error.message };
+  const result = data as Record<string, unknown>;
+  return {
+    available: result.available as boolean,
+    error: (result.error as string) ?? undefined,
+  };
+}
+
+/**
+ * Set the current user's username.
+ */
+export async function setUsername(username: string): Promise<{ success: boolean; error?: string }> {
+  const { data, error } = await supabase.rpc("set_username", {
+    p_username: username,
+  });
+  if (error) return { success: false, error: error.message };
+  const result = data as Record<string, unknown>;
+  if (result.error) return { success: false, error: result.error as string };
+  return { success: true };
+}
+
+/**
+ * Fetch the user's friends list (two-step query to avoid FK issues).
  */
 export async function fetchFriends(userId: string): Promise<FriendEntry[]> {
-  const { data, error } = await supabase
+  const { data: friends, error } = await supabase
     .from("friends")
-    .select(`
-      friend_id,
-      status,
-      profiles!friends_friend_id_fkey(display_name, avatar_seed, rating)
-    `)
+    .select("friend_id, status")
     .eq("user_id", userId)
     .eq("status", "accepted");
 
-  if (error || !data) return [];
+  if (error || !friends || friends.length === 0) return [];
 
-  return data.map((f: Record<string, unknown>) => {
-    const profile = f.profiles as Record<string, unknown>;
+  const friendIds = friends.map((f: Record<string, unknown>) => f.friend_id as string);
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, display_name, avatar_seed, rating")
+    .in("id", friendIds);
+
+  const profileMap = new Map<string, Record<string, unknown>>();
+  for (const p of (profiles ?? []) as Record<string, unknown>[]) {
+    profileMap.set(p.id as string, p);
+  }
+
+  return friends.map((f: Record<string, unknown>) => {
+    const profile = profileMap.get(f.friend_id as string) ?? {};
     return {
       userId: f.friend_id as string,
-      displayName: (profile?.display_name as string) ?? "Player",
-      avatarSeed: (profile?.avatar_seed as string) ?? "default",
+      displayName: (profile.display_name as string) ?? "Player",
+      avatarSeed: (profile.avatar_seed as string) ?? "default",
       status: f.status as string,
-      rating: (profile?.rating as number) ?? 0,
+      rating: (profile.rating as number) ?? 0,
     };
   });
 }
 
 /**
- * Fetch pending friend requests (incoming).
+ * Fetch pending friend requests (incoming) — two-step query.
  */
 export async function fetchPendingRequests(userId: string): Promise<FriendEntry[]> {
-  const { data, error } = await supabase
+  const { data: requests, error } = await supabase
     .from("friends")
-    .select(`
-      user_id,
-      status,
-      profiles!friends_user_id_fkey(display_name, avatar_seed, rating)
-    `)
+    .select("user_id, status")
     .eq("friend_id", userId)
     .eq("status", "pending");
 
-  if (error || !data) return [];
+  if (error || !requests || requests.length === 0) return [];
 
-  return data.map((f: Record<string, unknown>) => {
-    const profile = f.profiles as Record<string, unknown>;
+  const requesterIds = requests.map((r: Record<string, unknown>) => r.user_id as string);
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, display_name, avatar_seed, rating")
+    .in("id", requesterIds);
+
+  const profileMap = new Map<string, Record<string, unknown>>();
+  for (const p of (profiles ?? []) as Record<string, unknown>[]) {
+    profileMap.set(p.id as string, p);
+  }
+
+  return requests.map((r: Record<string, unknown>) => {
+    const profile = profileMap.get(r.user_id as string) ?? {};
     return {
-      userId: f.user_id as string,
-      displayName: (profile?.display_name as string) ?? "Player",
-      avatarSeed: (profile?.avatar_seed as string) ?? "default",
-      status: f.status as string,
-      rating: (profile?.rating as number) ?? 0,
+      userId: r.user_id as string,
+      displayName: (profile.display_name as string) ?? "Player",
+      avatarSeed: (profile.avatar_seed as string) ?? "default",
+      status: r.status as string,
+      rating: (profile.rating as number) ?? 0,
+    };
+  });
+}
+
+/**
+ * Fetch sent friend requests (outgoing) — two-step query.
+ */
+export async function fetchSentRequests(userId: string): Promise<FriendEntry[]> {
+  const { data: requests, error } = await supabase
+    .from("friends")
+    .select("friend_id, status")
+    .eq("user_id", userId)
+    .eq("status", "pending");
+
+  if (error || !requests || requests.length === 0) return [];
+
+  const targetIds = requests.map((r: Record<string, unknown>) => r.friend_id as string);
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, display_name, avatar_seed, rating")
+    .in("id", targetIds);
+
+  const profileMap = new Map<string, Record<string, unknown>>();
+  for (const p of (profiles ?? []) as Record<string, unknown>[]) {
+    profileMap.set(p.id as string, p);
+  }
+
+  return requests.map((r: Record<string, unknown>) => {
+    const profile = profileMap.get(r.friend_id as string) ?? {};
+    return {
+      userId: r.friend_id as string,
+      displayName: (profile.display_name as string) ?? "Player",
+      avatarSeed: (profile.avatar_seed as string) ?? "default",
+      status: r.status as string,
+      rating: (profile.rating as number) ?? 0,
     };
   });
 }
@@ -271,14 +414,26 @@ export async function acceptFriendRequest(userId: string, requesterId: string): 
 
   if (updateError) return false;
 
-  // Create the reverse friendship
-  const { error: insertError } = await supabase.from("friends").insert({
+  // Create the reverse friendship (or update if exists)
+  const { error: insertError } = await supabase.from("friends").upsert({
     user_id: userId,
     friend_id: requesterId,
     status: "accepted",
-  });
+  }, { onConflict: "user_id,friend_id" });
 
   return !insertError;
+}
+
+/**
+ * Reject/decline a friend request.
+ */
+export async function rejectFriendRequest(userId: string, requesterId: string): Promise<boolean> {
+  const { error } = await supabase
+    .from("friends")
+    .delete()
+    .eq("user_id", requesterId)
+    .eq("friend_id", userId);
+  return !error;
 }
 
 /**
