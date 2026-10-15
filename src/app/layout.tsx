@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+export const dynamic = "force-dynamic";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
@@ -17,17 +18,22 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Sudoku Arena — Treine. Compita. Evolua.",
   description:
-    "Sudoku Arena: Sudoku casual, aprendizado e competição. Modo Solo completo, Guia de técnicas, desafio diário e progressão local.",
-  keywords: ["Sudoku", "Sudoku Arena", "puzzle", "brain game", "competitive sudoku"],
+    "Sudoku Arena: Sudoku casual, aprendizado e competição. Modo Solo completo, Guia de técnicas, desafio diário, multiplayer e ranking.",
+  keywords: ["Sudoku", "Sudoku Arena", "puzzle", "brain game", "competitive sudoku", "multiplayer"],
   authors: [{ name: "Sudoku Arena" }],
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+    icon: "/favicon.svg",
   },
   openGraph: {
     title: "Sudoku Arena",
     description: "Treine. Compita. Evolua.",
     siteName: "Sudoku Arena",
     type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "Sudoku Arena",
+    description: "Treine. Compita. Evolua.",
   },
 };
 
