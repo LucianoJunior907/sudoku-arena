@@ -41,16 +41,7 @@ function Logo() {
 }
 
 function LocalModeBadge() {
-  const { t } = useI18n();
-  return (
-    <span
-      className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-400"
-      title={t("app.localModeDesc")}
-    >
-      <WifiOff className="h-3 w-3" />
-      {t("app.localMode")}
-    </span>
-  );
+  return null;
 }
 
 function LevelBadge() {
@@ -272,14 +263,8 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* Sticky footer */}
       <footer className="mt-auto border-t bg-background/80 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-2 px-4 py-3 text-xs text-muted-foreground sm:flex-row sm:px-6 lg:px-8">
-          <p>
-            Sudoku Arena · {t("settings.phaseValue")} · v1.0.0-local
-          </p>
-          <p className="flex items-center gap-1.5">
-            <WifiOff className="h-3 w-3" />
-            {t("app.localMode")}
-          </p>
+        <div className="mx-auto flex w-full max-w-6xl px-4 py-3 text-xs text-muted-foreground sm:px-6 lg:px-8">
+          <p>Sudoku Arena · v1.0.0</p>
         </div>
       </footer>
     </div>

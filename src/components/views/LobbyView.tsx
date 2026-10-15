@@ -19,7 +19,7 @@ import {
   Flame,
   Clock,
   Trophy,
-  WifiOff,
+  Wifi,
   Crown,
 } from "lucide-react";
 import type { Difficulty } from "@/lib/sudoku/types";
@@ -175,9 +175,9 @@ export function LobbyView() {
                     <Icon className="h-5 w-5" />
                   </div>
                   {m.online && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">
-                      <WifiOff className="h-3 w-3" />
-                      {t("common.comingSoon")}
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[var(--success)]/10 px-2 py-0.5 text-[10px] font-medium text-[var(--success)]">
+                      <Wifi className="h-3 w-3" />
+                      Online
                     </span>
                   )}
                 </div>

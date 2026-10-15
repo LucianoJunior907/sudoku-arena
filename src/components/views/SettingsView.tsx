@@ -274,12 +274,9 @@ export function SettingsView() {
         <dl className="grid grid-cols-2 gap-2 text-sm">
           <dt className="text-muted-foreground">{t("settings.version")}</dt>
           <dd>1.0.0</dd>
-          <dt className="text-muted-foreground">{t("settings.phase")}</dt>
-          <dd>{t("settings.phaseValue")}</dd>
+          <dt className="text-muted-foreground">Status</dt>
+          <dd className="font-medium text-[var(--success)]">Online</dd>
         </dl>
-        <p className="mt-3 rounded-md bg-muted/50 p-3 text-xs text-muted-foreground">
-          {t("app.localModeDesc")}
-        </p>
 
         {/* Replay tour */}
         <div className="mt-4 flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
