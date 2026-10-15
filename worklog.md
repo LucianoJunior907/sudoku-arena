@@ -669,3 +669,51 @@ Task: Supabase auth + cloud match saving + global leaderboard + Duo rooms + frie
 - Profile sync (XP/level/rating to cloud) is not yet wired — currently only matches are saved
 - Chat is implemented in the data layer (sendChatMessage + subscribeToChat) but not yet wired to a UI
 - Recommended next: (a) sync profile to cloud on changes; (b) wire Ranked matchmaking; (c) implement chat UI; (d) enable Google OAuth provider
+
+---
+Task ID: Review & Iteration
+Agent: main
+Task: Full project review, QA, fix regressions, redeploy.
+
+## Current project status / assessment
+- The project kept getting reset (files lost: .env, local-storage.ts, client.ts lazy proxy, LocalModeBadge removal, footer/settings/lobby text cleanup).
+- Vercel SSO Protection keeps re-enabling on every deploy — this is a team-level setting that can only be permanently disabled in the Vercel dashboard.
+
+## Goals / completed modifications / verification results
+
+### Fixes applied (this round):
+1. **`.env` restored** — Supabase credentials re-added (were lost again)
+2. **`src/lib/persistence/local-storage.ts` recreated** — was deleted
+3. **`src/lib/supabase/client.ts` lazy Proxy restored** — prevents "supabaseUrl is required" build error
+4. **`LocalModeBadge` removed** — returns null (was showing "Modo local" again)
+5. **Footer cleaned** — removed "Modo local" + WifiOff icon, now just "Sudoku Arena · v1.0.0"
+6. **SettingsView cleaned** — removed "Local (sem backend)" text, replaced with "Status: Online"
+7. **LobbyView cleaned** — "Em breve" replaced with "Online" badge (green Wifi icon)
+8. **`layout.tsx`** — has `dynamic = "force-dynamic"` to prevent SSR build crash
+9. **Favicon** — uses `/favicon.svg` (Sudoku Arena icon, not z.ai logo)
+10. **Deployed to Vercel** — build succeeds, alias updated
+
+### QA Results (local server):
+- ✅ Login works (arena@test.com)
+- ✅ All 13 views navigate without errors
+- ✅ Solo game starts (81 cells)
+- ✅ Zero console errors
+- ✅ "Modo local", "Em breve", "Local (sem backend)" all removed
+- ✅ Favicon is Sudoku Arena icon (not z.ai)
+- ✅ Lint clean
+
+### Vercel SSO Issue (UNRESOLVED):
+- The Vercel SSO Protection keeps re-enabling after every deploy
+- I disable it via API (`ssoProtection: null`) but it comes back
+- This is a **team-level setting** — the user must disable it permanently in the Vercel dashboard:
+  1. Go to https://vercel.com/lucianodatascience-9832/sudoku-arena/settings
+  2. Click "Deployment Protection" in the left sidebar
+  3. Turn OFF "Vercel Authentication"
+  4. Save
+- Until this is done, the public URL will redirect to Vercel login
+
+## Unresolved issues / risks / priority recommendations
+1. **CRITICAL: Vercel SSO Protection** — user must disable in dashboard (I can't disable permanently via API)
+2. **File persistence** — the sandbox keeps resetting files; recommend committing to Git for permanence
+3. **Supabase env vars on Vercel** — need to be re-set after team changes (currently set via API)
+4. **Ranked matchmaking** — needs 2+ real players online to test properly
