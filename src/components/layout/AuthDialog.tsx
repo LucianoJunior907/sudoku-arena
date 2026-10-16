@@ -6,21 +6,25 @@ import { useI18n } from "@/lib/i18n/context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Grid3x3, Mail, Lock, User, Chrome, LogOut, Loader2, AtSign } from "lucide-react";
+import { Grid3x3, Mail, Lock, User, Chrome, LogOut, Loader2, AtSign, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { checkUsernameAvailable, setUsername } from "@/lib/supabase/matches";
 import { cn } from "@/lib/utils";
 
 export function AuthDialog() {
-  const { t, locale } = useI18n();
-  const { user, loading, signInWithEmail, signUpWithEmail, signInWithGoogle, signOut } = useAuth();
+  const { locale } = useI18n();
+  const { user, loading, signInWithUsernameOrEmail, signUpWithEmail, signInWithGoogle, signOut } = useAuth();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
   const [username, setUsernameState] = useState("");
   const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken" | "invalid">("idle");
+  const [loginIdentifier, setLoginIdentifier] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const checkUsername = async (value: string) => {
     setUsernameState(value);
@@ -55,6 +59,12 @@ export function AuthDialog() {
         setBusy(false);
         return;
       }
+      // Validate password confirmation
+      if (password !== confirmPassword) {
+        toast.error(locale === "pt-BR" ? "As senhas não coincidem." : "Passwords do not match.");
+        setBusy(false);
+        return;
+      }
       // Re-check availability
       const check = await checkUsernameAvailable(username);
       if (!check.available) {
@@ -64,7 +74,7 @@ export function AuthDialog() {
         return;
       }
 
-      const { error } = await signUpWithEmail(email, password, name || username);
+      const { error } = await signUpWithEmail(email, password, name || username, username);
       if (error) {
         toast.error(error.message);
       } else {
@@ -78,9 +88,15 @@ export function AuthDialog() {
         toast.success(locale === "pt-BR" ? "Conta criada!" : "Account created!");
       }
     } else {
-      const { error } = await signInWithEmail(email, password);
+      // Login by username or email
+      if (!loginIdentifier.trim()) {
+        toast.error(locale === "pt-BR" ? "Digite seu nome de usuário ou email." : "Enter your username or email.");
+        setBusy(false);
+        return;
+      }
+      const { error } = await signInWithUsernameOrEmail(loginIdentifier, password);
       if (error) {
-        toast.error(error.message);
+        toast.error(locale === "pt-BR" ? "Credenciais inválidas." : "Invalid credentials.");
       } else {
         toast.success(locale === "pt-BR" ? "Bem-vindo!" : "Welcome!");
       }
@@ -154,9 +170,28 @@ export function AuthDialog() {
             <div className="h-px flex-1 bg-border" />
           </div>
 
-          {/* Email/Password form */}
+          {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-3">
-            {mode === "signup" && (
+            {mode === "signin" ? (
+              /* Login by username or email */
+              <div className="space-y-1.5">
+                <Label htmlFor="loginId">
+                  {locale === "pt-BR" ? "Nome de usuário ou email" : "Username or email"}
+                </Label>
+                <div className="relative">
+                  <AtSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="loginId"
+                    value={loginIdentifier}
+                    onChange={(e) => setLoginIdentifier(e.target.value)}
+                    placeholder={locale === "pt-BR" ? "@usuario ou email" : "@username or email"}
+                    className="pl-9"
+                    required
+                  />
+                </div>
+              </div>
+            ) : (
+              /* Signup fields */
               <>
                 <div className="space-y-1.5">
                   <Label htmlFor="name">{locale === "pt-BR" ? "Nome" : "Name"}</Label>
@@ -217,41 +252,92 @@ export function AuthDialog() {
                     </p>
                   )}
                 </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="email">Email</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="email@example.com"
+                      className="pl-9"
+                      required
+                    />
+                  </div>
+                </div>
               </>
             )}
-            <div className="space-y-1.5">
-              <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="email@example.com"
-                  className="pl-9"
-                  required
-                />
-              </div>
-            </div>
+
+            {/* Password */}
             <div className="space-y-1.5">
               <Label htmlFor="password">{locale === "pt-BR" ? "Senha" : "Password"}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   id="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="pl-9"
+                  className="pl-9 pr-9"
                   required
                   minLength={6}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
             </div>
 
-            <Button type="submit" className="w-full" disabled={busy || (mode === "signup" && usernameStatus !== "available")}>
+            {/* Password confirmation (signup only) */}
+            {mode === "signup" && (
+              <div className="space-y-1.5">
+                <Label htmlFor="confirmPassword">
+                  {locale === "pt-BR" ? "Confirmar senha" : "Confirm password"}
+                </Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirm ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className={cn(
+                      "pl-9 pr-9",
+                      confirmPassword.length > 0 && password !== confirmPassword && "border-[var(--destructive)] focus-visible:ring-[var(--destructive)]",
+                      confirmPassword.length > 0 && password === confirmPassword && "border-[var(--success)] focus-visible:ring-[var(--success)]",
+                    )}
+                    required
+                    minLength={6}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirm(!showConfirm)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {confirmPassword.length > 0 && password !== confirmPassword && (
+                  <p className="text-xs text-[var(--destructive)]">
+                    {locale === "pt-BR" ? "As senhas não coincidem." : "Passwords do not match."}
+                  </p>
+                )}
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={busy || (mode === "signup" && (usernameStatus !== "available" || (confirmPassword.length > 0 && password !== confirmPassword)))}
+            >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : mode === "signin"
                 ? (locale === "pt-BR" ? "Entrar" : "Sign In")
                 : (locale === "pt-BR" ? "Criar conta" : "Sign Up")}
@@ -264,7 +350,12 @@ export function AuthDialog() {
               ? (locale === "pt-BR" ? "Não tem conta? " : "No account? ")
               : (locale === "pt-BR" ? "Já tem conta? " : "Already have an account? ")}
             <button
-              onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setUsernameStatus("idle"); }}
+              onClick={() => {
+                setMode(mode === "signin" ? "signup" : "signin");
+                setUsernameStatus("idle");
+                setPassword("");
+                setConfirmPassword("");
+              }}
               className="font-semibold text-primary hover:underline"
             >
               {mode === "signin"
@@ -420,8 +511,6 @@ interface GridCell {
 }
 
 function generateGridCells(): GridCell[] {
-  // Cover the whole screen: 32px grid, ~60 cols x ~40 rows on a typical screen
-  // But we only need ~80 active cells randomly placed
   return Array.from({ length: 80 }, (_, i) => ({
     id: i,
     digit: Math.floor(Math.random() * 9) + 1,
