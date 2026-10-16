@@ -356,47 +356,42 @@ function FloatingNumbers() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setNumbers((prev) => {
-        // Replace ~30% of the numbers with new ones
-        return prev.map((n) =>
-          Math.random() < 0.3
-            ? {
-                ...n,
-                digit: Math.floor(Math.random() * 9) + 1,
-                opacity: 0,
-                phase: "in" as const,
-              }
-            : n.phase === "in" && n.opacity < 0.15
-            ? { ...n, opacity: n.opacity + 0.02 }
-            : n.phase === "in" && n.opacity >= 0.15
-            ? { ...n, phase: "hold" as const }
-            : n.phase === "hold" && n.opacity > 0
-            ? { ...n, opacity: n.opacity - 0.01, phase: n.opacity < 0.02 ? ("out" as const) : ("hold" as const) }
-            : n.phase === "out"
-            ? { ...n, opacity: 0, phase: "in" as const, digit: Math.floor(Math.random() * 9) + 1 }
-            : n
-        );
-      });
-    }, 120);
+      setNumbers((prev) =>
+        prev.map((n) => {
+          if (n.phase === "hidden") {
+            if (Math.random() < 0.25) {
+              return { ...n, digit: Math.floor(Math.random() * 9) + 1, phase: "in" as const };
+            }
+            return n;
+          }
+          if (n.phase === "in") {
+            if (n.opacity >= 0.12) return { ...n, phase: "hold" as const };
+            return { ...n, opacity: n.opacity + 0.015 };
+          }
+          if (n.phase === "hold") {
+            if (n.holdTime <= 0) return { ...n, phase: "out" as const };
+            return { ...n, holdTime: n.holdTime - 1 };
+          }
+          if (n.phase === "out") {
+            if (n.opacity <= 0) return { ...n, phase: "hidden" as const, opacity: 0 };
+            return { ...n, opacity: n.opacity - 0.015 };
+          }
+          return n;
+        })
+      );
+    }, 100);
     return () => clearInterval(interval);
   }, []);
 
   return (
-    <div className="pointer-events-none absolute inset-0">
+    <div className="pointer-events-none absolute inset-0 grid grid-cols-[repeat(16,minmax(0,1fr))] grid-rows-[repeat(12,minmax(0,1fr))]">
       {numbers.map((n) => (
         <span
           key={n.id}
-          className="absolute font-bold tabular-nums transition-opacity duration-200"
-          style={{
-            left: `${n.x}%`,
-            top: `${n.y}%`,
-            fontSize: `${n.size}rem`,
-            color: n.color,
-            opacity: n.opacity,
-            transform: `rotate(${n.rotate}deg)`,
-          }}
+          className="flex items-center justify-center font-bold tabular-nums text-foreground/10 transition-opacity duration-200"
+          style={{ opacity: n.opacity }}
         >
-          {n.digit}
+          {n.phase !== "hidden" ? n.digit : ""}
         </span>
       ))}
     </div>
@@ -406,33 +401,17 @@ function FloatingNumbers() {
 interface FloatingNum {
   id: number;
   digit: number;
-  x: number;
-  y: number;
-  size: number;
-  color: string;
-  rotate: number;
+  phase: "hidden" | "in" | "hold" | "out";
   opacity: number;
-  phase: "in" | "hold" | "out";
+  holdTime: number;
 }
 
 function generateNumbers(): FloatingNum[] {
-  const colors = [
-    "var(--primary)",
-    "var(--warning)",
-    "var(--chart-4)",
-    "var(--chart-5)",
-    "var(--success)",
-    "var(--info)",
-  ];
-  return Array.from({ length: 24 }, (_, i) => ({
+  return Array.from({ length: 192 }, (_, i) => ({
     id: i,
     digit: Math.floor(Math.random() * 9) + 1,
-    x: Math.random() * 95,
-    y: Math.random() * 95,
-    size: 1.5 + Math.random() * 3,
-    color: colors[i % colors.length],
-    rotate: Math.random() * 30 - 15,
-    opacity: 0,
-    phase: "in" as const,
+    phase: (["hidden", "in", "hold", "out"] as const)[Math.floor(Math.random() * 4)],
+    opacity: Math.random() * 0.12,
+    holdTime: Math.floor(Math.random() * 30) + 10,
   }));
 }
