@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/common/Avatar";
 import { BarChart3, Trophy, Crown, Medal, Award, RefreshCw, Loader2, Wifi } from "lucide-react";
 import { DIVISIONS } from "@/lib/progression/progression";
-import { formatTime } from "@/lib/sudoku/saved-game";
 import { fetchGlobalLeaderboard, type LeaderboardEntry } from "@/lib/supabase/matches";
 import { cn } from "@/lib/utils";
 
@@ -126,42 +125,52 @@ export function LeaderboardView() {
                 <tr className="border-b text-left text-xs text-muted-foreground">
                   <th className="px-3 py-2">#</th>
                   <th className="px-3 py-2">{locale === "pt-BR" ? "Jogador" : "Player"}</th>
-                  <th className="px-3 py-2">{t("history.difficulty")}</th>
-                  <th className="px-3 py-2 text-right">{t("daily.score")}</th>
-                  <th className="px-3 py-2 text-right">{t("history.time")}</th>
+                  <th className="px-3 py-2 text-center">{locale === "pt-BR" ? "Nível" : "Level"}</th>
+                  <th className="px-3 py-2 text-right">Rating</th>
                 </tr>
               </thead>
               <tbody>
-                {entries.map((entry, i) => (
-                  <tr key={i} className="border-b last:border-0 hover:bg-muted/30">
-                    <td className="px-3 py-2">
-                      <span className={cn(
-                        "flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold",
-                        i === 0 ? "bg-[var(--warning)]/15 text-[var(--warning)]" :
-                        i === 1 ? "bg-muted-foreground/15 text-muted-foreground" :
-                        i === 2 ? "bg-[#cd7f32]/15 text-[#cd7f32]" :
-                        "text-muted-foreground"
-                      )}>
-                        {i + 1}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2">
-                      <div className="flex items-center gap-2">
-                        <Avatar seed={entry.avatarSeed} size={28} className="rounded-md" />
-                        <span className="font-medium">{entry.displayName}</span>
-                      </div>
-                    </td>
-                    <td className="px-3 py-2 text-muted-foreground">
-                      {t(`difficulty.${entry.difficulty}` as never)}
-                    </td>
-                    <td className="px-3 py-2 text-right font-mono font-semibold tabular-nums text-primary">
-                      {entry.score}
-                    </td>
-                    <td className="px-3 py-2 text-right font-mono text-muted-foreground tabular-nums">
-                      {formatTime(entry.elapsedSec)}
-                    </td>
-                  </tr>
-                ))}
+                {entries.map((entry, i) => {
+                  const div = localDivision(entry.rating);
+                  const divInfo = DIVISIONS.find((d) => d.id === div);
+                  return (
+                    <tr key={i} className="border-b last:border-0 hover:bg-muted/30">
+                      <td className="px-3 py-2">
+                        <span className={cn(
+                          "flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold",
+                          i === 0 ? "bg-[var(--warning)]/15 text-[var(--warning)]" :
+                          i === 1 ? "bg-muted-foreground/15 text-muted-foreground" :
+                          i === 2 ? "bg-[#cd7f32]/15 text-[#cd7f32]" :
+                          "text-muted-foreground"
+                        )}>
+                          {i + 1}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <Avatar seed={entry.avatarSeed} size={28} className="rounded-md" />
+                          <div>
+                            <span className="font-medium">{entry.displayName}</span>
+                            {entry.username && (
+                              <span className="ml-1.5 text-xs text-muted-foreground">@{entry.username}</span>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-3 py-2 text-center text-muted-foreground">
+                        {entry.level}
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <span className="font-mono font-semibold tabular-nums" style={divInfo ? { color: divInfo.color } : undefined}>
+                          {entry.rating}
+                        </span>
+                        <span className="ml-1.5 text-xs" style={divInfo ? { color: divInfo.color } : undefined}>
+                          {t(`leaderboard.${div}` as never)}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
