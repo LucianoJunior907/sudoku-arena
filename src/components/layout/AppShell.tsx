@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/lib/supabase/auth";
 import { AuthDialog } from "@/components/layout/AuthDialog";
+import { Loader2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -199,6 +200,21 @@ export function AppShell({ children }: { children: ReactNode }) {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [route, setRoute]);
+
+  // If not authenticated, show ONLY the login screen (no app content behind it)
+  const { user: authUser, loading: authLoading } = useAuth();
+  if (!authUser && !authLoading) {
+    return <AuthDialog />;
+  }
+
+  // Show loading spinner while checking auth
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-background bg-arena-grid">
