@@ -116,8 +116,8 @@ export function AuthDialog() {
       <div className="absolute -right-20 -top-20 h-60 w-60 rounded-full bg-primary/10 blur-3xl" />
       <div className="absolute -bottom-20 left-1/3 h-60 w-60 rounded-full bg-[var(--warning)]/10 blur-3xl" />
 
-      {/* Floating Sudoku numbers */}
-      <FloatingNumbers />
+      {/* Grid-aligned numbers */}
+      <GridNumbers />
 
       <div className="relative w-full max-w-md p-6">
         <div className="mb-6 text-center">
@@ -351,32 +351,36 @@ function LoggedInHeader({ displayName, onSignOut, locale }: { displayName: strin
   );
 }
 
-function FloatingNumbers() {
-  const [numbers, setNumbers] = useState(() => generateNumbers());
+function GridNumbers() {
+  const [cells, setCells] = useState<GridCell[]>(() => generateGridCells());
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setNumbers((prev) =>
-        prev.map((n) => {
-          if (n.phase === "hidden") {
-            if (Math.random() < 0.25) {
-              return { ...n, digit: Math.floor(Math.random() * 9) + 1, phase: "in" as const };
+      setCells((prev) =>
+        prev.map((c) => {
+          if (c.phase === "hidden") {
+            if (Math.random() < 0.2) {
+              return {
+                ...c,
+                digit: Math.floor(Math.random() * 9) + 1,
+                phase: "in" as const,
+              };
             }
-            return n;
+            return c;
           }
-          if (n.phase === "in") {
-            if (n.opacity >= 0.12) return { ...n, phase: "hold" as const };
-            return { ...n, opacity: n.opacity + 0.015 };
+          if (c.phase === "in") {
+            if (c.opacity >= 0.12) return { ...c, phase: "hold" as const };
+            return { ...c, opacity: c.opacity + 0.02 };
           }
-          if (n.phase === "hold") {
-            if (n.holdTime <= 0) return { ...n, phase: "out" as const };
-            return { ...n, holdTime: n.holdTime - 1 };
+          if (c.phase === "hold") {
+            if (c.holdTime <= 0) return { ...c, phase: "out" as const };
+            return { ...c, holdTime: c.holdTime - 1 };
           }
-          if (n.phase === "out") {
-            if (n.opacity <= 0) return { ...n, phase: "hidden" as const, opacity: 0 };
-            return { ...n, opacity: n.opacity - 0.015 };
+          if (c.phase === "out") {
+            if (c.opacity <= 0) return { ...c, phase: "hidden" as const, opacity: 0 };
+            return { ...c, opacity: c.opacity - 0.02 };
           }
-          return n;
+          return c;
         })
       );
     }, 100);
@@ -384,34 +388,47 @@ function FloatingNumbers() {
   }, []);
 
   return (
-    <div className="pointer-events-none absolute inset-0 grid grid-cols-[repeat(16,minmax(0,1fr))] grid-rows-[repeat(12,minmax(0,1fr))]">
-      {numbers.map((n) => (
+    <div className="pointer-events-none absolute inset-0">
+      {cells.map((c) => (
         <span
-          key={n.id}
-          className="flex items-center justify-center font-bold tabular-nums text-foreground/10 transition-opacity duration-200"
-          style={{ opacity: n.opacity }}
+          key={c.id}
+          className="absolute flex items-center justify-center font-bold tabular-nums text-muted-foreground transition-opacity duration-100"
+          style={{
+            left: `${c.col * 32}px`,
+            top: `${c.row * 32}px`,
+            width: "32px",
+            height: "32px",
+            fontSize: "1rem",
+            opacity: c.phase === "hidden" ? 0 : c.opacity,
+          }}
         >
-          {n.phase !== "hidden" ? n.digit : ""}
+          {c.phase !== "hidden" ? c.digit : ""}
         </span>
       ))}
     </div>
   );
 }
 
-interface FloatingNum {
+interface GridCell {
   id: number;
   digit: number;
-  phase: "hidden" | "in" | "hold" | "out";
+  col: number;
+  row: number;
   opacity: number;
+  phase: "hidden" | "in" | "hold" | "out";
   holdTime: number;
 }
 
-function generateNumbers(): FloatingNum[] {
-  return Array.from({ length: 192 }, (_, i) => ({
+function generateGridCells(): GridCell[] {
+  // Cover the whole screen: 32px grid, ~60 cols x ~40 rows on a typical screen
+  // But we only need ~80 active cells randomly placed
+  return Array.from({ length: 80 }, (_, i) => ({
     id: i,
     digit: Math.floor(Math.random() * 9) + 1,
-    phase: (["hidden", "in", "hold", "out"] as const)[Math.floor(Math.random() * 4)],
-    opacity: Math.random() * 0.12,
-    holdTime: Math.floor(Math.random() * 30) + 10,
+    col: Math.floor(Math.random() * 60),
+    row: Math.floor(Math.random() * 40),
+    opacity: 0,
+    phase: (["hidden", "hidden", "hidden", "in"] as const)[Math.floor(Math.random() * 4)],
+    holdTime: Math.floor(Math.random() * 40) + 10,
   }));
 }
