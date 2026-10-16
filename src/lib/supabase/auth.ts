@@ -8,6 +8,7 @@ export interface AuthUser {
   id: string;
   email: string;
   displayName: string;
+  username: string | null;
 }
 
 export function useAuth() {
@@ -16,18 +17,39 @@ export function useAuth() {
 
   useEffect(() => {
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        setUser(toAuthUser(session.user));
+        const authUser = toAuthUser(session.user);
+        // Fetch username from profile
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("username, display_name")
+          .eq("id", session.user.id)
+          .single();
+        if (profile) {
+          authUser.username = (profile as Record<string, unknown>).username as string | null;
+          authUser.displayName = (profile as Record<string, unknown>).display_name as string;
+        }
+        setUser(authUser);
       }
       setLoading(false);
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      async (_event, session) => {
         if (session?.user) {
-          setUser(toAuthUser(session.user));
+          const authUser = toAuthUser(session.user);
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("username, display_name")
+            .eq("id", session.user.id)
+            .single();
+          if (profile) {
+            authUser.username = (profile as Record<string, unknown>).username as string | null;
+            authUser.displayName = (profile as Record<string, unknown>).display_name as string;
+          }
+          setUser(authUser);
         } else {
           setUser(null);
         }
@@ -38,16 +60,43 @@ export function useAuth() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signInWithEmail = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+  // Login by username OR email — tries username first, then falls back to email
+  const signInWithUsernameOrEmail = async (identifier: string, password: string) => {
+    // First, try to find the user by username
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id")
+      .ilike("username", identifier.trim())
+      .limit(1)
+      .maybeSingle();
+
+    let emailToUse = identifier.trim();
+
+    if (profile) {
+      // Found by username — fetch email from auth via RPC or use the user_id
+      // Supabase doesn't expose email from profiles, so we need a different approach
+      // We'll try to sign in with the identifier as email first, then try username-based lookup
+      // Actually, Supabase auth only accepts email. So we need an RPC to get email from username.
+      const { data: emailResult, error: rpcError } = await supabase.rpc("get_email_by_username", {
+        p_username: identifier.trim(),
+      });
+      if (!rpcError && emailResult) {
+        emailToUse = (emailResult as Record<string, unknown>).email as string;
+      }
+    }
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email: emailToUse,
+      password,
+    });
     return { error };
   };
 
-  const signUpWithEmail = async (email: string, password: string, displayName: string) => {
+  const signUpWithEmail = async (email: string, password: string, displayName: string, username: string) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { display_name: displayName } },
+      options: { data: { display_name: displayName || username } },
     });
     return { data, error };
   };
@@ -60,15 +109,38 @@ export function useAuth() {
     return { error };
   };
 
+  // Full sign out — clears local session + browser storage
   const signOut = async () => {
-    await supabase.auth.signOut();
+    // First sync display info to cloud
+    if (user) {
+      try {
+        const { useAppStore } = await import("@/lib/store/app-store");
+        const profile = useAppStore.getState().profile;
+        await supabase.rpc("update_display_info", {
+          p_display_name: profile.displayName,
+          p_avatar_seed: profile.avatarSeed,
+        });
+      } catch {
+        // non-critical
+      }
+    }
+    // Sign out from Supabase (this revokes the session)
+    await supabase.auth.signOut({ scope: "global" });
+    // Force-clear any cached session
+    try {
+      // Remove all supabase auth tokens from localStorage
+      const keys = Object.keys(localStorage).filter((k) => k.includes("sb-") || k.includes("supabase"));
+      for (const k of keys) localStorage.removeItem(k);
+    } catch {
+      // ignore
+    }
     setUser(null);
   };
 
   return {
     user,
     loading,
-    signInWithEmail,
+    signInWithUsernameOrEmail,
     signUpWithEmail,
     signInWithGoogle,
     signOut,
@@ -80,5 +152,6 @@ function toAuthUser(u: User): AuthUser {
     id: u.id,
     email: u.email ?? "",
     displayName: (u.user_metadata?.display_name as string) ?? "Player",
+    username: null,
   };
 }
