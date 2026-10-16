@@ -40,7 +40,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-local-*
+# local-* (removed — was blocking local-storage.ts)
 .claude
 .z-ai-config
 *.log
