@@ -8,12 +8,10 @@ export interface LeaderboardEntry {
   userId: string;
   displayName: string;
   avatarSeed: string;
-  score: number;
-  mode: string;
-  difficulty: string;
-  elapsedSec: number;
-  errors: number;
-  createdAt: string;
+  rating: number;
+  level: number;
+  totalXp: number;
+  username: string;
 }
 
 export interface FriendEntry {
@@ -26,64 +24,26 @@ export interface FriendEntry {
 
 /**
  * Fetch the global leaderboard from Supabase.
- * Returns top N completed matches with profile info.
- * Uses two-step query: first fetch matches, then fetch profiles separately
- * (avoids FK relationship issues).
+ * Returns top N players ordered by rating (descending).
  */
 export async function fetchGlobalLeaderboard(limit = 50): Promise<LeaderboardEntry[]> {
-  // Step 1: Fetch top matches
-  const { data: matches, error: mError } = await supabase
-    .from("matches")
-    .select("id, user_id, mode, difficulty, elapsed_sec, errors, score, created_at")
-    .eq("completed", true)
-    .order("score", { ascending: false })
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, display_name, avatar_seed, username, rating, level, total_xp")
+    .order("rating", { ascending: false })
     .limit(limit);
 
-  if (mError || !matches || matches.length === 0) return [];
+  if (error || !data) return [];
 
-  // Step 2: Fetch profiles for those users
-  const userIds = [...new Set(matches.map((m: Record<string, unknown>) => m.user_id as string))];
-  const { data: profiles, error: pError } = await supabase
-    .from("profiles")
-    .select("id, display_name, avatar_seed, username")
-    .in("id", userIds);
-
-  if (pError || !profiles) {
-    // Return matches without profile info if profiles fail
-    return matches.map((m: Record<string, unknown>) => ({
-      userId: m.user_id as string,
-      displayName: "Player",
-      avatarSeed: "default",
-      score: m.score as number,
-      mode: m.mode as string,
-      difficulty: m.difficulty as string,
-      elapsedSec: m.elapsed_sec as number,
-      errors: m.errors as number,
-      createdAt: m.created_at as string,
-    }));
-  }
-
-  // Build a profile lookup map
-  const profileMap = new Map<string, Record<string, unknown>>();
-  for (const p of profiles as Record<string, unknown>[]) {
-    profileMap.set(p.id as string, p);
-  }
-
-  // Merge matches with profiles
-  return matches.map((m: Record<string, unknown>) => {
-    const profile = profileMap.get(m.user_id as string) ?? {};
-    return {
-      userId: m.user_id as string,
-      displayName: (profile.display_name as string) ?? "Player",
-      avatarSeed: (profile.avatar_seed as string) ?? "default",
-      score: m.score as number,
-      mode: m.mode as string,
-      difficulty: m.difficulty as string,
-      elapsedSec: m.elapsed_sec as number,
-      errors: m.errors as number,
-      createdAt: m.created_at as string,
-    };
-  });
+  return (data as Record<string, unknown>[]).map((p) => ({
+    userId: p.id as string,
+    displayName: (p.display_name as string) ?? "Player",
+    avatarSeed: (p.avatar_seed as string) ?? "default",
+    username: (p.username as string) ?? "",
+    rating: (p.rating as number) ?? 0,
+    level: (p.level as number) ?? 1,
+    totalXp: (p.total_xp as number) ?? 0,
+  }));
 }
 
 /**
