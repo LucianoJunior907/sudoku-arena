@@ -95,21 +95,9 @@ export function AuthDialog() {
     setBusy(false);
   };
 
-  // If user is signed in, show profile card
+  // If user is signed in, show profile card + logout button
   if (user) {
-    return (
-      <div className="flex items-center gap-2">
-        <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-            {user.displayName.charAt(0).toUpperCase()}
-          </div>
-          <span className="hidden text-sm font-medium sm:inline">{user.displayName}</span>
-        </div>
-        <Button variant="ghost" size="icon" onClick={signOut} aria-label="Sign out" title="Sign out">
-          <LogOut className="h-4 w-4" />
-        </Button>
-      </div>
-    );
+    return <LoggedInHeader displayName={user.displayName} onSignOut={signOut} locale={locale} />;
   }
 
   if (loading) {
@@ -284,5 +272,78 @@ export function AuthDialog() {
         </div>
       </div>
     </div>
+  );
+}
+
+function LoggedInHeader({ displayName, onSignOut, locale }: { displayName: string; onSignOut: () => void; locale: string }) {
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  return (
+    <>
+      <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+            {displayName.charAt(0).toUpperCase()}
+          </div>
+          <span className="hidden text-sm font-medium sm:inline">{displayName}</span>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setShowLogoutConfirm(true)}
+          aria-label="Sign out"
+          title="Sign out"
+        >
+          <LogOut className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Logout confirmation popup */}
+      {showLogoutConfirm && (
+        <div
+          className="fixed inset-0 z-[300] flex items-center justify-center bg-background/80 backdrop-blur-sm"
+          onClick={() => setShowLogoutConfirm(false)}
+        >
+          <div
+            className="relative w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-2xl animate-float-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex flex-col items-center text-center">
+              <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--destructive)]/10">
+                <LogOut className="h-7 w-7 text-[var(--destructive)]" />
+              </div>
+              <h3 className="text-lg font-bold">
+                {locale === "pt-BR" ? "Sair da conta?" : "Sign out?"}
+              </h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {locale === "pt-BR"
+                  ? "Você precisará entrar novamente para acessar o multiplayer e o ranking."
+                  : "You'll need to sign in again to access multiplayer and ranking."}
+              </p>
+              <div className="mt-5 flex w-full gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setShowLogoutConfirm(false)}
+                >
+                  {locale === "pt-BR" ? "Cancelar" : "Cancel"}
+                </Button>
+                <Button
+                  variant="destructive"
+                  className="flex-1 gap-1.5"
+                  onClick={() => {
+                    setShowLogoutConfirm(false);
+                    onSignOut();
+                  }}
+                >
+                  <LogOut className="h-4 w-4" />
+                  {locale === "pt-BR" ? "Sair" : "Sign out"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
