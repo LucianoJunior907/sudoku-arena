@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/supabase/auth";
 import { useI18n } from "@/lib/i18n/context";
 import { Button } from "@/components/ui/button";
@@ -110,11 +110,14 @@ export function AuthDialog() {
 
   // Full-screen opaque login overlay
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-background">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-background overflow-hidden">
       {/* Background pattern */}
       <div className="absolute inset-0 bg-arena-grid opacity-30" />
       <div className="absolute -right-20 -top-20 h-60 w-60 rounded-full bg-primary/10 blur-3xl" />
       <div className="absolute -bottom-20 left-1/3 h-60 w-60 rounded-full bg-[var(--warning)]/10 blur-3xl" />
+
+      {/* Floating Sudoku numbers */}
+      <FloatingNumbers />
 
       <div className="relative w-full max-w-md p-6">
         <div className="mb-6 text-center">
@@ -346,4 +349,90 @@ function LoggedInHeader({ displayName, onSignOut, locale }: { displayName: strin
       )}
     </>
   );
+}
+
+function FloatingNumbers() {
+  const [numbers, setNumbers] = useState(() => generateNumbers());
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNumbers((prev) => {
+        // Replace ~30% of the numbers with new ones
+        return prev.map((n) =>
+          Math.random() < 0.3
+            ? {
+                ...n,
+                digit: Math.floor(Math.random() * 9) + 1,
+                opacity: 0,
+                phase: "in" as const,
+              }
+            : n.phase === "in" && n.opacity < 0.15
+            ? { ...n, opacity: n.opacity + 0.02 }
+            : n.phase === "in" && n.opacity >= 0.15
+            ? { ...n, phase: "hold" as const }
+            : n.phase === "hold" && n.opacity > 0
+            ? { ...n, opacity: n.opacity - 0.01, phase: n.opacity < 0.02 ? ("out" as const) : ("hold" as const) }
+            : n.phase === "out"
+            ? { ...n, opacity: 0, phase: "in" as const, digit: Math.floor(Math.random() * 9) + 1 }
+            : n
+        );
+      });
+    }, 120);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="pointer-events-none absolute inset-0">
+      {numbers.map((n) => (
+        <span
+          key={n.id}
+          className="absolute font-bold tabular-nums transition-opacity duration-200"
+          style={{
+            left: `${n.x}%`,
+            top: `${n.y}%`,
+            fontSize: `${n.size}rem`,
+            color: n.color,
+            opacity: n.opacity,
+            transform: `rotate(${n.rotate}deg)`,
+          }}
+        >
+          {n.digit}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+interface FloatingNum {
+  id: number;
+  digit: number;
+  x: number;
+  y: number;
+  size: number;
+  color: string;
+  rotate: number;
+  opacity: number;
+  phase: "in" | "hold" | "out";
+}
+
+function generateNumbers(): FloatingNum[] {
+  const colors = [
+    "var(--primary)",
+    "var(--warning)",
+    "var(--chart-4)",
+    "var(--chart-5)",
+    "var(--success)",
+    "var(--info)",
+  ];
+  return Array.from({ length: 24 }, (_, i) => ({
+    id: i,
+    digit: Math.floor(Math.random() * 9) + 1,
+    x: Math.random() * 95,
+    y: Math.random() * 95,
+    size: 1.5 + Math.random() * 3,
+    color: colors[i % colors.length],
+    rotate: Math.random() * 30 - 15,
+    opacity: 0,
+    phase: "in" as const,
+  }));
 }
