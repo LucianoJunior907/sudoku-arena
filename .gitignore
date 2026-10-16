@@ -51,4 +51,7 @@ prompt
 
 server.log
 # Skills directory
-/skills/
+/skills/.env
+.env.local
+dev.log
+db/
