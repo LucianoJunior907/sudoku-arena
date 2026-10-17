@@ -96,7 +96,7 @@ export function ProfileView() {
             <Button
               size="icon"
               variant="secondary"
-              className="absolute -bottom-1 -right-1 h-7 w-7 rounded-sm"
+              className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full"
               onClick={() => setEditOpen(true)}
               aria-label={t("profile.editProfile")}
             >
@@ -108,7 +108,7 @@ export function ProfileView() {
             <div className="flex items-center gap-2">
               <h2 className="text-2xl font-bold">{profile.displayName}</h2>
               {equippedTitle && (
-                <span className="rounded-sm bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
                   {cosmeticName(equippedTitle)}
                 </span>
               )}
@@ -281,7 +281,7 @@ function ModeStatsCard({
 
 function Stat({ label, value, icon }: { label: string; value: string; icon?: React.ReactNode }) {
   return (
-    <div className="rounded-sm border bg-card p-3">
+    <div className="rounded-lg border bg-card p-3">
       <p className="flex items-center gap-1 text-xs text-muted-foreground">{icon}{label}</p>
       <p className="mt-1 text-lg font-bold">{value}</p>
     </div>
@@ -319,7 +319,7 @@ function CosmeticSection({
               disabled={!unlocked}
               onClick={() => onEquip(c.id)}
               className={cn(
-                "relative flex flex-col items-center gap-2 rounded-sm border p-3 text-center transition-colors",
+                "relative flex flex-col items-center gap-2 rounded-lg border p-3 text-center transition-colors",
                 equipped
                   ? "border-primary bg-primary/5"
                   : unlocked
@@ -328,20 +328,20 @@ function CosmeticSection({
               )}
             >
               {type === "frame" && (
-                <div className={cn("h-8 w-8 rounded-sm bg-muted", c.preview)} />
+                <div className={cn("h-8 w-8 rounded-full bg-muted", c.preview)} />
               )}
               {type === "title" && (
                 <span className="text-xs font-semibold text-primary">{cosmeticName(c)}</span>
               )}
               {type === "effect" && (
-                <div className={cn("h-8 w-8 rounded-sm bg-gradient-to-br from-primary/30 to-[var(--warning)]/30", c.preview)} />
+                <div className={cn("h-8 w-8 rounded-full bg-gradient-to-br from-primary/30 to-[var(--warning)]/30", c.preview)} />
               )}
               <span className="text-xs">{cosmeticName(c)}</span>
               <span className="text-[10px] text-muted-foreground">
                 {t("common.level")} {c.unlockLevel}
               </span>
               {equipped ? (
-                <span className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-sm bg-primary text-primary-foreground">
+                <span className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground">
                   <Check className="h-2.5 w-2.5" />
                 </span>
               ) : !unlocked ? (

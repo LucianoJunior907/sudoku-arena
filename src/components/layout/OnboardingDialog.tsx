@@ -16,7 +16,7 @@ export function OnboardingDialog() {
     <Dialog open>
       <DialogContent className="sm:max-w-md" showCloseButton={false}>
         <DialogHeader>
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-md bg-primary/10 ring-1 ring-primary/20">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 ring-1 ring-primary/20">
             <Grid3x3 className="h-8 w-8 text-primary" />
           </div>
           <DialogTitle className="text-center text-2xl">Sudoku Arena</DialogTitle>
@@ -33,7 +33,7 @@ export function OnboardingDialog() {
               key={l}
               onClick={() => setSelected(l)}
               className={cn(
-                "flex w-full items-center justify-between rounded-sm border px-4 py-3 text-left transition-colors",
+                "flex w-full items-center justify-between rounded-lg border px-4 py-3 text-left transition-colors",
                 selected === l
                   ? "border-primary bg-primary/5 ring-1 ring-primary"
                   : "border-border hover:bg-muted/50"

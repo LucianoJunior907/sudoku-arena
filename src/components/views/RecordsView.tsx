@@ -195,7 +195,7 @@ export function RecordsView() {
       <div className="flex justify-center">
         <button
           onClick={() => setRoute("solo")}
-          className="inline-flex items-center gap-1 rounded-sm border border-border px-4 py-2 text-sm font-medium transition-colors hover:border-primary/40 hover:text-primary"
+          className="inline-flex items-center gap-1 rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors hover:border-primary/40 hover:text-primary"
         >
           {t("nav.solo")}
           <TrendingUp className="h-4 w-4" />

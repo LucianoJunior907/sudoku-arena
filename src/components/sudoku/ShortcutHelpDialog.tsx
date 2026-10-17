@@ -35,7 +35,7 @@ export function ShortcutHelpDialog({ open, onOpenChange }: ShortcutHelpDialogPro
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-md bg-primary/10">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
             <Keyboard className="h-6 w-6 text-primary" />
           </div>
           <DialogTitle className="text-center">{t("solo.shortcutHelp")}</DialogTitle>

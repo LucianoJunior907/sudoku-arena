@@ -59,7 +59,7 @@ export function DifficultyDialog({ open, onOpenChange, puzzle }: DifficultyDialo
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <div className={cn("mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-md", ratingBg)}>
+          <div className={cn("mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl", ratingBg)}>
             <Gauge className={cn("h-6 w-6", ratingColor)} />
           </div>
           <DialogTitle className="text-center">{t("solo.difficulty")}</DialogTitle>
@@ -81,7 +81,7 @@ export function DifficultyDialog({ open, onOpenChange, puzzle }: DifficultyDialo
         </div>
 
         {/* Technique breakdown */}
-        <div className="space-y-2 rounded-sm border border-border bg-muted/30 p-3">
+        <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">
           <p className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
             <Layers className="h-3.5 w-3.5" />
             {t("difficulty.techniquesUsed")}

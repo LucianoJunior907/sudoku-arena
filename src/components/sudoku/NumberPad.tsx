@@ -55,7 +55,7 @@ export function NumberPad({
               onBlur={() => onHoverDigit?.(0)}
               disabled={exhausted && !notesMode}
               className={cn(
-                "relative flex aspect-square items-center justify-center rounded-sm border text-lg font-bold transition-all sm:text-xl",
+                "relative flex aspect-square items-center justify-center rounded-lg border text-lg font-bold transition-all sm:text-xl",
                 "border-border bg-card hover:border-primary/50 hover:bg-primary/5 hover:text-primary hover:-translate-y-0.5 hover:shadow-md",
                 isActive && "border-primary bg-primary/10 text-primary",
                 exhausted && !notesMode && "opacity-30",

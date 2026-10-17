@@ -83,7 +83,7 @@ export function SudokuBoard({
       aria-label="Sudoku board"
       style={themeVars as React.CSSProperties | undefined}
     >
-      <div className="grid h-full w-full grid-cols-9 grid-rows-9 overflow-hidden rounded-sm border-2 border-[var(--cell-border-thick)] bg-[var(--cell-border-thick)] gap-px shadow-lg">
+      <div className="grid h-full w-full grid-cols-9 grid-rows-9 overflow-hidden rounded-lg border-2 border-[var(--cell-border-thick)] bg-[var(--cell-border-thick)] gap-px shadow-lg">
         {board.map((value, i) => {
           const { row, col } = indexToRc(i);
           const isGiven = given[i];

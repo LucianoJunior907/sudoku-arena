@@ -22,7 +22,7 @@ export function PlaceholderView({
         <p className="mt-1 text-sm text-muted-foreground">{t(subtitleKey)}</p>
       </div>
       <Card className="border-dashed p-10 text-center">
-        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-sm bg-muted">
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
           <Construction className="h-6 w-6 text-muted-foreground" />
         </div>
         <p className="font-medium">{t("common.comingSoon")}</p>

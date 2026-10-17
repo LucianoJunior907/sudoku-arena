@@ -146,7 +146,7 @@ export function DuoView() {
           <p className="mt-1 text-sm text-muted-foreground">{t("duo.subtitle")}</p>
         </div>
 
-        <div className="flex items-center gap-2 rounded-sm border border-[var(--success)]/30 bg-[var(--success)]/5 p-3 text-sm">
+        <div className="flex items-center gap-2 rounded-lg border border-[var(--success)]/30 bg-[var(--success)]/5 p-3 text-sm">
           <Wifi className="h-4 w-4 text-[var(--success)]" />
           <span className="font-medium text-[var(--success)]">
             {locale === "pt-BR" ? "Sala ativa!" : "Room active!"}
@@ -159,7 +159,7 @@ export function DuoView() {
             {locale === "pt-BR" ? "Código da sala" : "Room code"}
           </p>
           <div className="flex items-center gap-2">
-            <div className="flex-1 rounded-sm border-2 border-dashed border-primary/40 bg-primary/5 px-4 py-3 text-center">
+            <div className="flex-1 rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 px-4 py-3 text-center">
               <span className="text-2xl font-bold tracking-widest text-primary">{roomCode}</span>
             </div>
             <Button variant="outline" size="icon" onClick={copyCode}>
@@ -181,7 +181,7 @@ export function DuoView() {
               <div
                 key={team}
                 className={cn(
-                  "rounded-sm border-2 p-3",
+                  "rounded-lg border-2 p-3",
                   team === 1 ? "border-primary/40" : "border-[var(--chart-4)]/40"
                 )}
               >
@@ -238,7 +238,7 @@ export function DuoView() {
         <p className="mt-1 text-sm text-muted-foreground">{t("duo.subtitle")}</p>
       </div>
 
-      <div className="flex items-center gap-2 rounded-sm border border-[var(--success)]/30 bg-[var(--success)]/5 p-3 text-sm">
+      <div className="flex items-center gap-2 rounded-lg border border-[var(--success)]/30 bg-[var(--success)]/5 p-3 text-sm">
         <Wifi className="h-4 w-4 text-[var(--success)]" />
         <span className="font-medium text-[var(--success)]">
           {locale === "pt-BR" ? "Duo online!" : "Duo online!"}
@@ -264,7 +264,7 @@ export function DuoView() {
             <button
               onClick={() => setIsPrivate(false)}
               className={cn(
-                "flex flex-1 items-center justify-center gap-2 rounded-sm border px-3 py-2 text-sm transition-colors",
+                "flex flex-1 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors",
                 !isPrivate ? "border-primary bg-primary/5 text-primary" : "border-border hover:bg-muted/50"
               )}
             >
@@ -274,7 +274,7 @@ export function DuoView() {
             <button
               onClick={() => setIsPrivate(true)}
               className={cn(
-                "flex flex-1 items-center justify-center gap-2 rounded-sm border px-3 py-2 text-sm transition-colors",
+                "flex flex-1 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors",
                 isPrivate ? "border-primary bg-primary/5 text-primary" : "border-border hover:bg-muted/50"
               )}
             >
@@ -325,7 +325,7 @@ function TeamCard({
   color: string;
 }) {
   return (
-    <div className="rounded-sm border p-3" style={{ borderColor: `color-mix(in oklch, ${color} 30%, transparent)` }}>
+    <div className="rounded-lg border p-3" style={{ borderColor: `color-mix(in oklch, ${color} 30%, transparent)` }}>
       <p className="mb-2 text-xs font-semibold" style={{ color }}>
         {name}
       </p>
