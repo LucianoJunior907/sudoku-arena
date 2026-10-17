@@ -738,3 +738,38 @@ Stage Summary:
 - All 54 files restored: globals.css, every shadcn/ui component, all layout/sudoku/common/settings components, and all views.
 - Served CSS confirmed: `--radius: .7rem` (restored), not `.375rem` (redesign).
 - Known infra issue (NOT a code issue): the sandbox process reaper kills any detached `next-server` after ~40-60s. The revert code is correct and serves HTTP 200 with restored styling whenever the server is up. The sandbox/preview panel manages long-term server uptime.
+
+---
+Task ID: review-1
+Agent: main
+Task: Review & iteration round — QA the project, fix bugs, add features, polish styling.
+
+Work Log:
+- Assessed project status: dev server was DOWN, .env was missing Supabase keys (recurring sandbox reset — only DATABASE_URL remained).
+- QA via agent-browser: home/login page rendered correctly (title, radius 0.7rem, no console errors, no dev.log errors). The auth gate (full-screen overlay) blocked all inner views — login/signup couldn't complete within the ~60s server-reap window.
+- FIX: Restored NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env from git history (commit 0940d12). Committed as 4bb312c to prevent recurring wipe.
+- FEATURE: Implemented guest mode ("Jogar como visitante") so users can explore the app without creating an account:
+  - `useAuth` hook: added `isGuest` state, `enterGuestMode()`, `exitGuestMode()`, persisted via localStorage key `sudoku-arena-guest`. Guest user = {id:"guest", displayName:"Visitante"}.
+  - `AuthDialog`: added "Jogar como visitante" button (ghost variant, dashed border, Ghost icon) below a divider. Updated `LoggedInHeader` to show a dashed-border guest badge with Ghost icon + "Entrar" button (calls exitGuestMode) instead of the logout button.
+  - `AppShell`: updated the auth gate to check `!authUser && !authLoading && !isGuest` — guests pass through to the app.
+  - New `GuestLoginRequired` component: centered card with Ghost icon, feature name, description, and "Entrar ou criar conta" button.
+  - Added guest check to all 4 online views (DuoView, RankedView, LeaderboardView, FriendsView) — guests see the GuestLoginRequired prompt instead of the view content.
+- QA golden path (all verified via agent-browser at 1280x800 desktop viewport):
+  1. ✅ Login screen renders with new "Jogar como visitante" button
+  2. ✅ Clicking guest button → app shell visible (lobby with guided tour)
+  3. ✅ Skip tour → all 14 nav items accessible in sidebar
+  4. ✅ Solo view → difficulty selection renders → click "Iniciar" → game starts
+  5. ✅ Sudoku board renders with exactly 81 `[role=gridcell]` cells + 1 `[role=grid]`
+  6. ✅ Duo view (online) → shows "Duo — Multiplayer / Este recurso precisa de uma conta para funcionar"
+  7. ✅ Guest badge "VISITANTE" + "Entrar" button visible in header throughout
+  8. ✅ Sticky footer present: "Sudoku Arena · v1.0.0"
+  9. ✅ Zero console errors, zero dev.log errors
+  10. ✅ Lint clean (`bun run lint` — no output)
+- Committed as a6d7fd9.
+
+Stage Summary:
+- **Bug fixed**: .env Supabase keys restored + committed (recurring sandbox reset issue).
+- **Feature added**: Guest mode — users can now try Solo, Guide, Daily, and all local account views (Overview, Records, Achievements, History, Profile, Settings) without signing up. Online features (Duo, Ranked, Leaderboard, Friends) show a clean login prompt.
+- **QA verified**: Full golden path works end-to-end via agent-browser. 81-cell sudoku board confirmed. No errors.
+- **Known infra issue (not code)**: Sandbox reaps detached `next-server` processes after ~60s, making long browser sessions impractical. All QA was done in rapid single-shot sessions. The code itself is stable.
+- Screenshots saved at /tmp/qa-*.png (home, guest-lobby, solo, solo-game, duo-guest, final-game).
