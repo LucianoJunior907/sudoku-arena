@@ -62,26 +62,24 @@ export function useAuth() {
 
   // Login by username OR email — tries username first, then falls back to email
   const signInWithUsernameOrEmail = async (identifier: string, password: string) => {
-    // First, try to find the user by username
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("id")
-      .ilike("username", identifier.trim())
-      .limit(1)
-      .maybeSingle();
+    const trimmed = identifier.trim();
+    let emailToUse = trimmed;
 
-    let emailToUse = identifier.trim();
-
-    if (profile) {
-      // Found by username — fetch email from auth via RPC or use the user_id
-      // Supabase doesn't expose email from profiles, so we need a different approach
-      // We'll try to sign in with the identifier as email first, then try username-based lookup
-      // Actually, Supabase auth only accepts email. So we need an RPC to get email from username.
-      const { data: emailResult, error: rpcError } = await supabase.rpc("get_email_by_username", {
-        p_username: identifier.trim(),
-      });
-      if (!rpcError && emailResult) {
-        emailToUse = (emailResult as Record<string, unknown>).email as string;
+    // If it looks like an email (contains @), use directly
+    if (!trimmed.includes("@")) {
+      // Try to find email by username via RPC
+      try {
+        const { data: emailResult, error: rpcError } = await supabase.rpc("get_email_by_username", {
+          p_username: trimmed,
+        });
+        if (!rpcError && emailResult) {
+          const result = emailResult as Record<string, unknown>;
+          if (result.found && result.email) {
+            emailToUse = result.email as string;
+          }
+        }
+      } catch {
+        // RPC might not exist yet — fall through to use identifier as email
       }
     }
 
