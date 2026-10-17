@@ -866,3 +866,22 @@ Stage Summary:
   1. Username check → works (available vs taken both verified)
   2. SQL files → user ran them all correctly
   3. Vercel login clickable → verified interactive on production
+
+---
+Task ID: fix-deleted-users-login
+Agent: main
+Task: Fix: deleted Supabase users can still login (stale JWT in localStorage).
+
+Work Log:
+- Root cause: Supabase saves the JWT in browser localStorage (persistSession: true). When a user is deleted from Supabase dashboard, the token stays valid for ~1 hour. `getSession()` only reads localStorage cache — never validates with server — so deleted users appear "logged in" until token expires.
+- Fix in useAuth hook (auth.ts):
+  1. Initial load: after getSession(), call `supabase.auth.getUser()` (network request) to verify the auth user still exists. If error/no user → signOut().
+  2. Also check profiles table — if profile row is missing (user deleted from DB) → signOut().
+  3. onAuthStateChange: same profile check — if missing → signOut().
+- Discovered: the database still has 2 users (Luciano Junior + Test User). User thought they deleted all but didn't.
+- Discovered: profiles table has NO delete RLS policy — can't delete via REST API. Must delete from Supabase Dashboard → Authentication → Users (which cascades to profiles via `on delete cascade`).
+- Committed as 460d08e, pushed to GitHub/Vercel.
+
+Stage Summary:
+- **Fix deployed**: deleted users now get auto-signed-out on next page load (both auth.users deletion and profiles-only deletion handled).
+- **User action needed**: to delete users correctly, go to Supabase Dashboard → Authentication → Users → click delete. This removes both auth.users AND profiles (cascade). Do NOT try to delete from the profiles table in the SQL editor — that only removes the profile, not the auth user, and the user could re-login (though my fix now signs them out if profile is missing).
