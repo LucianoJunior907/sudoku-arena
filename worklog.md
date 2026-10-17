@@ -815,3 +815,26 @@ Stage Summary:
 - **SQL order**: Documented — user needs to run all 5 SQL files in the correct order.
 - **Vercel login**: Fixed — clear warning + guest fallback when env vars missing. User MUST add Supabase env vars in Vercel dashboard for login to work.
 - **Verified locally**: With env configured → no warning, login form works. Without env → warning banner shows, buttons disabled, guest button highlighted.
+
+---
+Task ID: verify-username-fix
+Agent: main
+Task: Verify username check fix works end-to-end after user ran SQL + added Vercel env vars.
+
+Work Log:
+- Pushed latest commit (3fdddb8) to GitHub to trigger Vercel redeploy.
+- Restarted dev server with restored .env (Supabase keys were wiped again by sandbox).
+- Verified via agent-browser + direct RPC fetch:
+  1. ✅ Supabase warning banner NOT showing (env configured correctly locally).
+  2. ✅ Typed random username "qa278352" → status shows "Disponível" (available).
+  3. ✅ Direct RPC test: `check_username_available('admin')` returns `{"available": true}` — RPC is accessible to anon role (no permission error). User ran the SQL correctly.
+  4. ✅ Profiles table was empty (`[]`) — so all usernames were genuinely available.
+  5. ✅ Full signup test: filled name/username/email/password/confirm → submitted → user created successfully → redirected to Lobby (header shows "Test User"). 
+  6. ✅ After signup, checked the SAME username via RPC → returns `{"available": false}` — username now correctly shows as taken!
+  7. ✅ Zero dev log errors during the entire flow.
+
+Stage Summary:
+- **Username check is FULLY WORKING**: available usernames show "Disponível", taken usernames show "Em uso". The fix (anon grant in SQL + error-handling in code) resolved the issue completely.
+- **Signup flow works end-to-end**: user can create an account, username is persisted to profiles table, and subsequent checks correctly detect it as taken.
+- **Vercel**: latest code pushed (3fdddb8). With SQL run + env vars set on Vercel, the production deploy should now work the same way.
+- **Recurring note**: .env was wiped AGAIN by sandbox (only DATABASE_URL remained). Restored Supabase keys. This is a sandbox-only issue, not a code issue.
