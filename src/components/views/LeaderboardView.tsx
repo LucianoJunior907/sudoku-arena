@@ -9,6 +9,8 @@ import { Avatar } from "@/components/common/Avatar";
 import { BarChart3, Trophy, Crown, Medal, Award, RefreshCw, Loader2, Wifi } from "lucide-react";
 import { DIVISIONS } from "@/lib/progression/progression";
 import { fetchGlobalLeaderboard, type LeaderboardEntry } from "@/lib/supabase/matches";
+import { useAuth } from "@/lib/supabase/auth";
+import { GuestLoginRequired } from "@/components/common/GuestLoginRequired";
 import { cn } from "@/lib/utils";
 
 const DIV_LABEL_KEYS = {
@@ -38,6 +40,7 @@ export function LeaderboardView() {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { isGuest } = useAuth();
 
   const loadLeaderboard = async () => {
     setLoading(true);
@@ -61,6 +64,10 @@ export function LeaderboardView() {
     load();
     return () => { cancelled = true; };
   }, []);
+
+  if (isGuest) {
+    return <GuestLoginRequired featureName={locale === "pt-BR" ? "Ranking Global" : "Global Leaderboard"} />;
+  }
 
   return (
     <div className="space-y-6">

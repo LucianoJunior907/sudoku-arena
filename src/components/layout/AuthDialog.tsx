@@ -6,14 +6,14 @@ import { useI18n } from "@/lib/i18n/context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Grid3x3, Mail, Lock, User, Chrome, LogOut, Loader2, AtSign, Eye, EyeOff } from "lucide-react";
+import { Grid3x3, Mail, Lock, User, Chrome, LogOut, Loader2, AtSign, Eye, EyeOff, Ghost, LogIn } from "lucide-react";
 import { toast } from "sonner";
 import { checkUsernameAvailable, setUsername } from "@/lib/supabase/matches";
 import { cn } from "@/lib/utils";
 
 export function AuthDialog() {
   const { locale } = useI18n();
-  const { user, loading, signInWithUsernameOrEmail, signUpWithEmail, signInWithGoogle, signOut } = useAuth();
+  const { user, loading, isGuest, signInWithUsernameOrEmail, signUpWithEmail, signInWithGoogle, signOut, enterGuestMode, exitGuestMode } = useAuth();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -111,9 +111,17 @@ export function AuthDialog() {
     setBusy(false);
   };
 
-  // If user is signed in, show profile card + logout button
+  // If user is signed in (or in guest mode), show profile card + logout button
   if (user) {
-    return <LoggedInHeader displayName={user.displayName} onSignOut={signOut} locale={locale} />;
+    return (
+      <LoggedInHeader
+        displayName={user.displayName}
+        onSignOut={signOut}
+        locale={locale}
+        isGuest={isGuest}
+        onLogin={exitGuestMode}
+      />
+    );
   }
 
   if (loading) {
@@ -363,33 +371,86 @@ export function AuthDialog() {
                 : (locale === "pt-BR" ? "Entrar" : "Sign in")}
             </button>
           </p>
+
+          {/* Guest mode divider */}
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center">
+              <span className="bg-card px-2 text-[10px] uppercase tracking-wider text-muted-foreground/70">
+                {locale === "pt-BR" ? "ou" : "or"}
+              </span>
+            </div>
+          </div>
+
+          {/* Play as guest */}
+          <Button
+            type="button"
+            variant="ghost"
+            className="w-full border border-dashed border-border text-muted-foreground hover:text-foreground hover:bg-muted/50"
+            onClick={enterGuestMode}
+          >
+            <Ghost className="h-4 w-4" />
+            {locale === "pt-BR" ? "Jogar como visitante" : "Play as guest"}
+          </Button>
+          <p className="mt-2 text-center text-[10px] text-muted-foreground/60">
+            {locale === "pt-BR"
+              ? "Explore o modo solo e o guia sem criar conta."
+              : "Explore solo mode and the guide without an account."}
+          </p>
         </div>
       </div>
     </div>
   );
 }
 
-function LoggedInHeader({ displayName, onSignOut, locale }: { displayName: string; onSignOut: () => void; locale: string }) {
+function LoggedInHeader({ displayName, onSignOut, locale, isGuest, onLogin }: { displayName: string; onSignOut: () => void; locale: string; isGuest?: boolean; onLogin?: () => void }) {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   return (
     <>
       <div className="flex items-center gap-2">
-        <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-            {displayName.charAt(0).toUpperCase()}
+        <div className={cn(
+          "flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5",
+          isGuest && "border-dashed border-muted-foreground/40"
+        )}>
+          <div className={cn(
+            "flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold",
+            isGuest ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary"
+          )}>
+            {isGuest ? <Ghost className="h-3.5 w-3.5" /> : displayName.charAt(0).toUpperCase()}
           </div>
           <span className="hidden text-sm font-medium sm:inline">{displayName}</span>
+          {isGuest && (
+            <span className="hidden rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground sm:inline">
+              {locale === "pt-BR" ? "Visitante" : "Guest"}
+            </span>
+          )}
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setShowLogoutConfirm(true)}
-          aria-label="Sign out"
-          title="Sign out"
-        >
-          <LogOut className="h-4 w-4" />
-        </Button>
+        {isGuest ? (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onLogin}
+            className="gap-1.5"
+            aria-label={locale === "pt-BR" ? "Entrar" : "Sign in"}
+            title={locale === "pt-BR" ? "Entrar" : "Sign in"}
+          >
+            <LogIn className="h-4 w-4" />
+            <span className="hidden sm:inline">{locale === "pt-BR" ? "Entrar" : "Sign in"}</span>
+          </Button>
+        ) : (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowLogoutConfirm(true)}
+            aria-label="Sign out"
+            title="Sign out"
+          >
+            <LogOut className="h-4 w-4" />
+          </Button>
+        )}
       </div>
 
       {/* Logout confirmation popup */}
