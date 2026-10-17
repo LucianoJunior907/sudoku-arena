@@ -6,9 +6,10 @@ import { useI18n } from "@/lib/i18n/context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Grid3x3, Mail, Lock, User, Chrome, LogOut, Loader2, AtSign, Eye, EyeOff, Ghost, LogIn } from "lucide-react";
+import { Grid3x3, Mail, Lock, User, Chrome, LogOut, Loader2, AtSign, Eye, EyeOff, Ghost, LogIn, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { checkUsernameAvailable, setUsername } from "@/lib/supabase/matches";
+import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 export function AuthDialog() {
@@ -36,9 +37,20 @@ export function AuthDialog() {
     const result = await checkUsernameAvailable(value);
     if (result.available) {
       setUsernameStatus("available");
-    } else if (result.error && result.error.includes("characters")) {
-      setUsernameStatus("invalid");
+    } else if (result.error) {
+      // Distinguish validation errors (format/length) from "actually taken"
+      const err = result.error.toLowerCase();
+      if (err.includes("character") || err.includes("must be") || err.includes("only letters")) {
+        setUsernameStatus("invalid");
+      } else if (err.includes("taken") || err.includes("already") || err.includes("exists")) {
+        setUsernameStatus("taken");
+      } else {
+        // RPC/permission/network error — don't block the user, allow them to try
+        // (the final re-check on submit will catch real conflicts)
+        setUsernameStatus("available");
+      }
     } else {
+      // No error but not available = genuinely taken
       setUsernameStatus("taken");
     }
   };
@@ -65,9 +77,9 @@ export function AuthDialog() {
         setBusy(false);
         return;
       }
-      // Re-check availability
+      // Re-check availability (but don't block on RPC errors — set_username will validate)
       const check = await checkUsernameAvailable(username);
-      if (!check.available) {
+      if (!check.available && (!check.error || check.error.toLowerCase().includes("taken") || check.error.toLowerCase().includes("already"))) {
         toast.error(locale === "pt-BR" ? "Nome de usuário já está em uso." : "Username already taken.");
         setUsernameStatus("taken");
         setBusy(false);
@@ -166,8 +178,25 @@ export function AuthDialog() {
               : "Sign in to compete online, sync your progress, and play with friends."}
           </p>
 
+          {/* Supabase not configured warning (e.g. missing env vars on Vercel) */}
+          {!isSupabaseConfigured && (
+            <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+              <div className="text-amber-700 dark:text-amber-300">
+                <p className="font-semibold">
+                  {locale === "pt-BR" ? "Backend não configurado" : "Backend not configured"}
+                </p>
+                <p className="mt-0.5 leading-relaxed">
+                  {locale === "pt-BR"
+                    ? "As variáveis do Supabase não foram definidas. Login não funcionará, mas você pode jogar como visitante."
+                    : "Supabase environment variables are missing. Login won't work, but you can play as guest."}
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Google OAuth */}
-          <Button variant="outline" className="w-full mb-3" onClick={handleGoogle} disabled={busy}>
+          <Button variant="outline" className="w-full mb-3" onClick={handleGoogle} disabled={busy || !isSupabaseConfigured}>
             <Chrome className="mr-2 h-4 w-4" />
             {locale === "pt-BR" ? "Continuar com Google" : "Continue with Google"}
           </Button>
@@ -344,7 +373,7 @@ export function AuthDialog() {
             <Button
               type="submit"
               className="w-full"
-              disabled={busy || (mode === "signup" && (usernameStatus !== "available" || (confirmPassword.length > 0 && password !== confirmPassword)))}
+              disabled={busy || !isSupabaseConfigured || (mode === "signup" && ((usernameStatus !== "available" && usernameStatus !== "idle" && usernameStatus !== "checking") || (confirmPassword.length > 0 && password !== confirmPassword)))}
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : mode === "signin"
                 ? (locale === "pt-BR" ? "Entrar" : "Sign In")
@@ -387,8 +416,13 @@ export function AuthDialog() {
           {/* Play as guest */}
           <Button
             type="button"
-            variant="ghost"
-            className="w-full border border-dashed border-border text-muted-foreground hover:text-foreground hover:bg-muted/50"
+            variant={isSupabaseConfigured ? "ghost" : "default"}
+            className={cn(
+              "w-full border border-dashed",
+              isSupabaseConfigured
+                ? "border-border text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                : "border-primary/40 bg-primary/10 text-primary hover:bg-primary/20"
+            )}
             onClick={enterGuestMode}
           >
             <Ghost className="h-4 w-4" />

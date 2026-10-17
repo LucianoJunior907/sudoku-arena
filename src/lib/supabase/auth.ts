@@ -54,6 +54,9 @@ export function useAuth() {
         setUser(authUser);
       }
       setLoading(false);
+    }).catch(() => {
+      // Network error or Supabase not configured — don't hang forever
+      setLoading(false);
     });
 
     // Listen for auth changes
