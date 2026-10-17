@@ -61,8 +61,8 @@ export function LobbyView() {
       <Card className="relative overflow-hidden border-primary/20">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-[var(--warning)]/10" />
         <div className="absolute inset-0 bg-arena-grid opacity-40" />
-        <div className="absolute -right-8 -top-8 h-40 w-40 rounded-sm bg-primary/20 blur-3xl" />
-        <div className="absolute -bottom-10 left-1/3 h-32 w-32 rounded-sm bg-[var(--warning)]/15 blur-3xl" />
+        <div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-primary/20 blur-3xl" />
+        <div className="absolute -bottom-10 left-1/3 h-32 w-32 rounded-full bg-[var(--warning)]/15 blur-3xl" />
         <div className="relative flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm text-muted-foreground">{t("lobby.welcome")},</p>
@@ -88,9 +88,9 @@ export function LobbyView() {
           <Card className="w-full max-w-xs border-primary/20 bg-card/80 p-4 backdrop-blur">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="relative flex h-11 w-11 items-center justify-center rounded-md bg-gradient-to-br from-primary to-[var(--chart-4)] text-primary-foreground font-bold shadow-md">
+                <div className="relative flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-[var(--chart-4)] text-primary-foreground font-bold shadow-md">
                   <span className="relative z-10">{level}</span>
-                  <div className="absolute inset-0 rounded-md bg-white/10" />
+                  <div className="absolute inset-0 rounded-xl bg-white/10" />
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">{t("lobby.level")}</p>
@@ -137,7 +137,7 @@ export function LobbyView() {
         <Card className="border-primary/30 bg-primary/5 p-4">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-primary/10">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
                 <Clock className="h-5 w-5 text-primary" />
               </div>
               <div>
@@ -171,11 +171,11 @@ export function LobbyView() {
                 onClick={() => setRoute(m.id)}
               >
                 <div className="flex items-start justify-between">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-md bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
                     <Icon className="h-5 w-5" />
                   </div>
                   {m.online && (
-                    <span className="inline-flex items-center gap-1 rounded-sm bg-[var(--success)]/10 px-2 py-0.5 text-[10px] font-medium text-[var(--success)]">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[var(--success)]/10 px-2 py-0.5 text-[10px] font-medium text-[var(--success)]">
                       <Wifi className="h-3 w-3" />
                       Online
                     </span>
@@ -193,7 +193,7 @@ export function LobbyView() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="cursor-pointer p-5 transition-all hover:border-primary/40" onClick={() => setRoute("daily")}>
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-md bg-[var(--warning)]/15 text-[var(--warning)]">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--warning)]/15 text-[var(--warning)]">
               <CalendarDays className="h-5 w-5" />
             </div>
             <div className="flex-1">
@@ -225,10 +225,10 @@ export function LobbyView() {
       {/* Puzzle of the Week */}
       <Card className="relative overflow-hidden border-[var(--chart-4)]/30 p-5">
         <div className="absolute inset-0 bg-gradient-to-r from-[var(--chart-4)]/10 via-transparent to-[var(--warning)]/10" />
-        <div className="absolute -right-6 -top-6 h-32 w-32 rounded-sm bg-[var(--chart-4)]/15 blur-2xl" />
+        <div className="absolute -right-6 -top-6 h-32 w-32 rounded-full bg-[var(--chart-4)]/15 blur-2xl" />
         <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-md bg-[var(--chart-4)]/15 text-[var(--chart-4)]">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--chart-4)]/15 text-[var(--chart-4)]">
               <Crown className="h-6 w-6" />
             </div>
             <div>
@@ -273,7 +273,7 @@ export function LobbyView() {
 function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <Card className="group relative overflow-hidden p-4 transition-all hover:border-primary/30 hover:shadow-md">
-      <div className="absolute -right-4 -top-4 h-16 w-16 rounded-sm bg-primary/5 opacity-0 transition-opacity group-hover:opacity-100" />
+      <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-primary/5 opacity-0 transition-opacity group-hover:opacity-100" />
       <div className="relative flex items-center gap-2">
         <span className="transition-transform group-hover:scale-110">{icon}</span>
         <span className="text-xs text-muted-foreground">{label}</span>

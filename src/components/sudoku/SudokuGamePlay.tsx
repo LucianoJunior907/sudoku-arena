@@ -226,7 +226,7 @@ export function SudokuGamePlay({
           />
 
           {state.status === "paused" && (
-            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center rounded-sm bg-background/90 backdrop-blur-sm">
+            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center rounded-lg bg-background/90 backdrop-blur-sm">
               <Pause className="mb-3 h-10 w-10 text-primary" />
               <p className="text-xl font-bold">{t("solo.paused")}</p>
               <p className="mt-1 max-w-xs text-center text-sm text-muted-foreground">{t("solo.pausedDesc")}</p>

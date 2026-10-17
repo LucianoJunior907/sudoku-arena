@@ -106,13 +106,13 @@ export function ArchiveView() {
             )}
           >
             {entry.isCurrent && (
-              <div className="absolute -right-6 -top-6 h-24 w-24 rounded-sm bg-[var(--chart-4)]/10 blur-2xl" />
+              <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-[var(--chart-4)]/10 blur-2xl" />
             )}
             <div className="relative flex items-start justify-between">
               <div className="flex items-center gap-3">
                 <div
                   className={cn(
-                    "flex h-10 w-10 items-center justify-center rounded-sm",
+                    "flex h-10 w-10 items-center justify-center rounded-lg",
                     entry.isCurrent
                       ? "bg-[var(--chart-4)]/15 text-[var(--chart-4)]"
                       : "bg-primary/10 text-primary"

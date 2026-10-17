@@ -81,7 +81,7 @@ export function SolverDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-md bg-[var(--chart-4)]/10">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--chart-4)]/10">
             <Brain className="h-6 w-6 text-[var(--chart-4)]" />
           </div>
           <DialogTitle className="text-center">{t("solo.solverTitle")}</DialogTitle>
@@ -90,14 +90,14 @@ export function SolverDialog({
 
         {isDone ? (
           <div className="py-6 text-center">
-            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-sm bg-[var(--success)]/15">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--success)]/15">
               <Check className="h-6 w-6 text-[var(--success)]" />
             </div>
             <p className="text-sm font-medium text-[var(--success)]">{t("solo.solverEmpty")}</p>
           </div>
         ) : !suggestion ? (
           <div className="py-6 text-center">
-            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-sm bg-muted">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
               <X className="h-6 w-6 text-muted-foreground" />
             </div>
             <p className="text-sm text-muted-foreground">{t("solo.solverNoMove")}</p>
@@ -105,9 +105,9 @@ export function SolverDialog({
         ) : (
           <div className="space-y-3 py-2">
             {/* Suggested cell + value */}
-            <div className="flex items-center justify-between rounded-sm border border-border bg-card p-4">
+            <div className="flex items-center justify-between rounded-lg border border-border bg-card p-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-sm bg-primary/10 text-2xl font-bold text-primary">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-2xl font-bold text-primary">
                   {suggestion.value}
                 </div>
                 <div>
@@ -126,7 +126,7 @@ export function SolverDialog({
             </div>
 
             {/* Reasoning */}
-            <div className="rounded-sm border border-border bg-muted/30 p-3">
+            <div className="rounded-lg border border-border bg-muted/30 p-3">
               <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
                 <Wand2 className="h-3.5 w-3.5" />
                 {t("solo.solverReason")}

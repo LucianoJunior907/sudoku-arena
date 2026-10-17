@@ -40,7 +40,7 @@ export function LevelUpToast() {
           <X className="h-4 w-4" />
         </button>
         <div className="flex items-start gap-3 p-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-primary/10 animate-pop">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 animate-pop">
             <Sparkles className="h-6 w-6 text-primary" />
           </div>
           <div className="flex-1">

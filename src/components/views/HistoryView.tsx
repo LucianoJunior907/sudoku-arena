@@ -22,7 +22,7 @@ export function HistoryView() {
 
       {history.length === 0 ? (
         <Card className="border-dashed p-10 text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-sm bg-muted">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
             <HistoryIcon className="h-6 w-6 text-muted-foreground" />
           </div>
           <p className="font-medium">{t("history.empty")}</p>

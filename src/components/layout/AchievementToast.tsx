@@ -38,7 +38,7 @@ export function AchievementToast() {
           <X className="h-4 w-4" />
         </button>
         <div className="flex items-start gap-3 p-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-[var(--warning)]/15 animate-pop">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--warning)]/15 animate-pop">
             <Icon className="h-6 w-6 text-[var(--warning)]" />
           </div>
           <div className="flex-1">
