@@ -78,7 +78,7 @@ export function ExportImageDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-md bg-primary/10">
             <ImageIcon className="h-6 w-6 text-primary" />
           </div>
           <DialogTitle className="text-center">{t("solo.exportImage")}</DialogTitle>
@@ -90,7 +90,7 @@ export function ExportImageDialog({
             <img
               src={preview}
               alt="Board preview"
-              className="max-h-64 rounded-lg border shadow-sm"
+              className="max-h-64 rounded-sm border shadow-sm"
             />
           </div>
         )}

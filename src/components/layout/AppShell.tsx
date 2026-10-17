@@ -30,7 +30,7 @@ import {
 function Logo() {
   return (
     <div className="flex items-center gap-2">
-      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
+      <div className="flex h-9 w-9 items-center justify-center rounded-sm bg-primary text-primary-foreground shadow-sm">
         <Grid3x3 className="h-5 w-5" />
       </div>
       <div className="leading-tight">
@@ -53,13 +53,13 @@ function LevelBadge() {
 
   return (
     <div className="hidden items-center gap-2 sm:flex">
-      <div className="flex items-center gap-2 rounded-full border bg-card px-2.5 py-1">
-        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
+      <div className="flex items-center gap-2 rounded-sm border bg-card px-2.5 py-1">
+        <div className="flex h-6 w-6 items-center justify-center rounded-sm bg-primary text-[11px] font-bold text-primary-foreground">
           {level}
         </div>
         <div className="w-20">
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-            <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+          <div className="h-1.5 w-full overflow-hidden rounded-sm bg-muted">
+            <div className="h-full rounded-sm bg-primary transition-all" style={{ width: `${pct}%` }} />
           </div>
         </div>
       </div>
@@ -150,7 +150,7 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
                         onNavigate?.();
                       }}
                       className={cn(
-                        "group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                        "group flex w-full items-center gap-3 rounded-sm px-3 py-2 text-sm font-medium transition-colors",
                         active
                           ? "bg-primary text-primary-foreground shadow-sm"
                           : "text-foreground/80 hover:bg-muted hover:text-foreground"
@@ -160,7 +160,7 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
                       <span className="flex-1 text-left">{t(item.labelKey)}</span>
                       {item.online && (
                         <span
-                          className="h-1.5 w-1.5 rounded-full bg-amber-500"
+                          className="h-1.5 w-1.5 rounded-sm bg-amber-500"
                           title={t("common.comingSoon")}
                         />
                       )}

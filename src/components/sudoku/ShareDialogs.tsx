@@ -60,7 +60,7 @@ export function ShareBoardDialog({ open, onOpenChange, puzzle, difficulty }: Sha
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-md bg-primary/10">
             <Share2 className="h-6 w-6 text-primary" />
           </div>
           <DialogTitle className="text-center">{t("solo.shareTitle")}</DialogTitle>
@@ -136,7 +136,7 @@ export function LoadSharedBoardDialog({ open, onOpenChange, onLoad }: LoadShared
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-md bg-primary/10">
             <ClipboardPaste className="h-6 w-6 text-primary" />
           </div>
           <DialogTitle className="text-center">{t("solo.sharedTitle")}</DialogTitle>

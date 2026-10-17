@@ -85,7 +85,7 @@ export function GuidedTour({ open, onComplete }: GuidedTourProps) {
               key={i}
               onClick={() => setStep(i)}
               className={cn(
-                "h-2 rounded-full transition-all",
+                "h-2 rounded-sm transition-all",
                 i === step ? "w-6 bg-primary" : "w-2 bg-muted-foreground/30 hover:bg-muted-foreground/50"
               )}
               aria-label={`Step ${i + 1}`}
@@ -94,7 +94,7 @@ export function GuidedTour({ open, onComplete }: GuidedTourProps) {
         </div>
 
         <DialogHeader className="pt-2">
-          <div className={cn("relative mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br", current.accent)}>
+          <div className={cn("relative mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-md bg-gradient-to-br", current.accent)}>
             <Icon className="h-8 w-8 text-primary" />
           </div>
           <DialogTitle className="text-center text-xl">{t(current.titleKey)}</DialogTitle>

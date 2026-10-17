@@ -331,7 +331,7 @@ export function RankedView() {
           won ? "border-[var(--success)]/40" : "border-[var(--destructive)]/40"
         )}>
           <div className={cn(
-            "mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full",
+            "mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-sm",
             won ? "bg-[var(--success)]/15" : "bg-[var(--destructive)]/15"
           )}>
             {won ? <Trophy className="h-10 w-10 text-[var(--success)]" /> : <X className="h-10 w-10 text-[var(--destructive)]" />}
@@ -379,7 +379,7 @@ export function RankedView() {
         </div>
 
         <Card className="p-10 text-center">
-          <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
+          <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-sm bg-primary/10">
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
           </div>
           <h3 className="text-xl font-bold">
@@ -497,7 +497,7 @@ export function RankedView() {
         <p className="mt-1 text-sm text-muted-foreground">{t("ranked.subtitle")}</p>
       </div>
 
-      <div className="flex items-center gap-2 rounded-lg border border-[var(--success)]/30 bg-[var(--success)]/5 p-3 text-sm">
+      <div className="flex items-center gap-2 rounded-sm border border-[var(--success)]/30 bg-[var(--success)]/5 p-3 text-sm">
         <Wifi className="h-4 w-4 text-[var(--success)]" />
         <span className="font-medium text-[var(--success)]">
           {locale === "pt-BR" ? "Ranqueada online!" : "Ranked online!"}
@@ -508,7 +508,7 @@ export function RankedView() {
       <Card className="relative overflow-hidden p-5">
         <div className="absolute inset-0 opacity-15" style={{ background: `radial-gradient(circle at 30% 20%, ${divInfo.color}, transparent 65%)` }} />
         <div className="relative flex items-center gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl text-2xl" style={{ background: `color-mix(in oklch, ${divInfo.color} 20%, transparent)`, color: divInfo.color }}>
+          <div className="flex h-16 w-16 items-center justify-center rounded-md text-2xl" style={{ background: `color-mix(in oklch, ${divInfo.color} 20%, transparent)`, color: divInfo.color }}>
             <Crown className="h-8 w-8" />
           </div>
           <div className="flex-1">
@@ -539,10 +539,10 @@ export function RankedView() {
             const isPassed = profile.rating >= d.min;
             return (
               <div key={d.id} className={cn(
-                "flex items-center gap-3 rounded-lg border p-3",
+                "flex items-center gap-3 rounded-sm border p-3",
                 isCurrent ? "border-primary bg-primary/5" : "border-border"
               )}>
-                <div className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold" style={{
+                <div className="flex h-9 w-9 items-center justify-center rounded-sm text-xs font-bold" style={{
                   background: isPassed ? `color-mix(in oklch, ${d.color} 25%, transparent)` : "var(--muted)",
                   color: isPassed ? d.color : "var(--muted-foreground)",
                 }}>{i + 1}</div>

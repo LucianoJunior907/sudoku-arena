@@ -81,7 +81,7 @@ export function AchievementsView() {
                     <div className="flex items-start gap-3">
                       <div
                         className={cn(
-                          "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl",
+                          "flex h-11 w-11 shrink-0 items-center justify-center rounded-md",
                           isUnlocked ? "bg-[var(--warning)]/15 text-[var(--warning)]" : "bg-muted text-muted-foreground"
                         )}
                       >
@@ -93,7 +93,7 @@ export function AchievementsView() {
                         <p className="mt-1 text-xs font-semibold text-primary">+{a.xpReward} {t("common.xp")}</p>
                       </div>
                       {isUnlocked ? (
-                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--success)] text-[var(--success-foreground)]">
+                        <span className="flex h-6 w-6 items-center justify-center rounded-sm bg-[var(--success)] text-[var(--success-foreground)]">
                           <Check className="h-3.5 w-3.5" />
                         </span>
                       ) : (

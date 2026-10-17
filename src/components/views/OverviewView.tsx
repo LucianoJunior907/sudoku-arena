@@ -167,7 +167,7 @@ export function OverviewView() {
           </div>
           <button
             onClick={() => setRoute("profile")}
-            className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+            className="inline-flex items-center gap-1 rounded-sm border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
           >
             {t("profile.title")}
             <ChevronRight className="h-3.5 w-3.5" />
@@ -245,7 +245,7 @@ export function OverviewView() {
                   <div className="flex items-center gap-2">
                     <span
                       className={cn(
-                        "flex h-6 w-6 items-center justify-center rounded-full",
+                        "flex h-6 w-6 items-center justify-center rounded-sm",
                         h.completed ? "bg-[var(--success)]/15 text-[var(--success)]" : "bg-muted text-muted-foreground"
                       )}
                     >
@@ -340,7 +340,7 @@ export function OverviewView() {
           <div className="h-12 w-px bg-border" />
           <button
             onClick={() => setRoute("daily")}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs font-medium transition-colors hover:border-primary/40 hover:text-primary"
+            className="inline-flex items-center gap-1.5 rounded-sm border border-border px-3 py-2 text-xs font-medium transition-colors hover:border-primary/40 hover:text-primary"
           >
             {t("nav.daily")}
             <ChevronRight className="h-3.5 w-3.5" />
@@ -373,7 +373,7 @@ export function OverviewView() {
                 key={a.id}
                 title={`${a.name[locale]}${unlocked ? "" : " 🔒"}`}
                 className={cn(
-                  "flex aspect-square items-center justify-center rounded-lg border transition-all",
+                  "flex aspect-square items-center justify-center rounded-sm border transition-all",
                   unlocked
                     ? "border-[var(--warning)]/40 bg-[var(--warning)]/5 text-[var(--warning)]"
                     : "border-border text-muted-foreground/40"

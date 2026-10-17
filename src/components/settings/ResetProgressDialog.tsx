@@ -63,7 +63,7 @@ function ResetForm({
   return (
     <>
       <DialogHeader>
-        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--destructive)]/10">
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-sm bg-[var(--destructive)]/10">
           <AlertTriangle className="h-6 w-6 text-[var(--destructive)]" />
         </div>
         <DialogTitle className="text-center text-[var(--destructive)]">{t("settings.resetTitle")}</DialogTitle>

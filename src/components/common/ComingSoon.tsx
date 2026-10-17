@@ -8,8 +8,8 @@ import type { TranslationKey } from "@/lib/i18n/translations";
 export function NeedsBackendBanner({ noteKey }: { noteKey: TranslationKey }) {
   const { t } = useI18n();
   return (
-    <div className="flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-500/10">
+    <div className="flex items-start gap-3 rounded-sm border border-amber-500/30 bg-amber-500/5 p-4">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm bg-amber-500/10">
         <ServerCog className="h-5 w-5 text-amber-600 dark:text-amber-400" />
       </div>
       <div className="flex-1">
@@ -31,7 +31,7 @@ export function RulesList({ rules }: { rules: TranslationKey[] }) {
       <ol className="space-y-2">
         {rules.map((r, i) => (
           <li key={i} className="flex gap-3 text-sm">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-sm bg-primary/10 text-xs font-bold text-primary">
               {i + 1}
             </span>
             <span className="pt-0.5 leading-relaxed">{t(r)}</span>
@@ -46,7 +46,7 @@ export function DisabledButton({ label, sublabel }: { label: string; sublabel?: 
   return (
     <button
       disabled
-      className="relative flex flex-1 flex-col items-center gap-1 rounded-lg border border-dashed border-border bg-muted/30 px-4 py-3 text-center opacity-70"
+      className="relative flex flex-1 flex-col items-center gap-1 rounded-sm border border-dashed border-border bg-muted/30 px-4 py-3 text-center opacity-70"
     >
       <span className="text-sm font-medium text-muted-foreground">{label}</span>
       {sublabel && <span className="text-[10px] text-muted-foreground/70">{sublabel}</span>}
