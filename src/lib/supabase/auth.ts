@@ -37,11 +37,23 @@ export function useAuth() {
       // localStorage might be unavailable
     }
 
-    // Get initial session
+    // Get initial session — validate against server, not just localStorage cache
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        const authUser = toAuthUser(session.user);
-        // Fetch username from profile
+        // Validate the session against the server (not just localStorage).
+        // getUser() makes a network request and will fail if the user was
+        // deleted from Supabase, even if their JWT is still in localStorage.
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        if (userError || !userData?.user) {
+          // User no longer exists — clear the stale session
+          await supabase.auth.signOut();
+          setUser(null);
+          setLoading(false);
+          return;
+        }
+        const authUser = toAuthUser(userData.user);
+        // Fetch username from profile — if profile doesn't exist, the user
+        // was deleted (but auth user might still be around briefly)
         const { data: profile } = await supabase
           .from("profiles")
           .select("username, display_name")
@@ -50,6 +62,13 @@ export function useAuth() {
         if (profile) {
           authUser.username = (profile as Record<string, unknown>).username as string | null;
           authUser.displayName = (profile as Record<string, unknown>).display_name as string;
+        } else {
+          // Profile missing = user was deleted from the database.
+          // Sign out to clear the stale session.
+          await supabase.auth.signOut();
+          setUser(null);
+          setLoading(false);
+          return;
         }
         setUser(authUser);
       }
@@ -63,16 +82,22 @@ export function useAuth() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         if (session?.user) {
-          const authUser = toAuthUser(session.user);
+          // Validate against server on auth state changes too
           const { data: profile } = await supabase
             .from("profiles")
             .select("username, display_name")
             .eq("id", session.user.id)
             .single();
-          if (profile) {
-            authUser.username = (profile as Record<string, unknown>).username as string | null;
-            authUser.displayName = (profile as Record<string, unknown>).display_name as string;
+          if (!profile) {
+            // Profile missing = user was deleted — sign out
+            await supabase.auth.signOut();
+            setUser(null);
+            setLoading(false);
+            return;
           }
+          const authUser = toAuthUser(session.user);
+          authUser.username = (profile as Record<string, unknown>).username as string | null;
+          authUser.displayName = (profile as Record<string, unknown>).display_name as string;
           setUser(authUser);
         } else {
           setUser(null);
