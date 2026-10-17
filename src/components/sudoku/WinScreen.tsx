@@ -77,13 +77,13 @@ export function WinScreen({
       <Card ref={cardRef} className="relative w-full max-w-md overflow-hidden border-primary/30 p-6 animate-float-up">
         <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-primary via-[var(--warning)] to-primary shimmer" />
         <div className="flex flex-col items-center text-center">
-          <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--warning)]/15 animate-pop">
+          <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-sm bg-[var(--warning)]/15 animate-pop">
             <Trophy className="h-8 w-8 text-[var(--warning)]" />
           </div>
           <h2 className="text-2xl font-bold text-primary">{t("solo.win")}</h2>
           <p className="mt-1 text-sm text-muted-foreground">{t("solo.winDesc")}</p>
           {isRecord && (
-            <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-[var(--warning)]/15 px-3 py-1 text-xs font-semibold text-[var(--warning)]">
+            <div className="mt-2 inline-flex items-center gap-1.5 rounded-sm bg-[var(--warning)]/15 px-3 py-1 text-xs font-semibold text-[var(--warning)]">
               <Star className="h-3.5 w-3.5" />
               {t("solo.newRecord")}
             </div>
@@ -109,7 +109,7 @@ export function WinScreen({
           </div>
 
           {xpResult?.unlockedAchievements && xpResult.unlockedAchievements.length > 0 && (
-            <div className="mt-4 w-full rounded-lg border border-[var(--warning)]/30 bg-[var(--warning)]/5 p-3 text-center">
+            <div className="mt-4 w-full rounded-sm border border-[var(--warning)]/30 bg-[var(--warning)]/5 p-3 text-center">
               <p className="flex items-center justify-center gap-1.5 text-sm font-semibold text-[var(--warning)]">
                 <Trophy className="h-4 w-4" />
                 {t("achievements.unlocked")}
@@ -132,7 +132,7 @@ export function WinScreen({
           )}
 
           {xpResult?.leveledUp && (
-            <div className="mt-4 w-full rounded-lg border border-primary/30 bg-primary/5 p-3 text-center">
+            <div className="mt-4 w-full rounded-sm border border-primary/30 bg-primary/5 p-3 text-center">
               <p className="text-sm font-semibold text-primary">{t("xp.levelUp")}</p>
               <p className="text-xs text-muted-foreground">
                 {t("xp.nowLevel")} {xpResult.newLevel} · {t("common.level")} {level}
@@ -164,7 +164,7 @@ export function WinScreen({
 
 function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="rounded-lg border bg-card p-3">
+    <div className="rounded-sm border bg-card p-3">
       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
         {icon}
         {label}

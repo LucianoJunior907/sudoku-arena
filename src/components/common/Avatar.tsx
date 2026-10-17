@@ -28,7 +28,7 @@ export function Avatar({
       viewBox="0 0 100 100"
       width={size}
       height={size}
-      className={cn("rounded-xl", className)}
+      className={cn("rounded-md", className)}
       aria-hidden="true"
     >
       <defs>

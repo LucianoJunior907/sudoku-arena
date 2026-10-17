@@ -73,7 +73,7 @@ export function LeaderboardView() {
       </div>
 
       {/* Online indicator */}
-      <div className="flex items-center gap-2 rounded-lg border border-[var(--success)]/30 bg-[var(--success)]/5 p-3 text-sm">
+      <div className="flex items-center gap-2 rounded-sm border border-[var(--success)]/30 bg-[var(--success)]/5 p-3 text-sm">
         <Wifi className="h-4 w-4 text-[var(--success)]" />
         <span className="font-medium text-[var(--success)]">
           {locale === "pt-BR" ? "Ranking global online!" : "Global leaderboard online!"}
@@ -109,7 +109,7 @@ export function LeaderboardView() {
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : entries.length === 0 ? (
-          <div className="flex h-48 flex-col items-center justify-center rounded-lg border border-dashed border-border text-center">
+          <div className="flex h-48 flex-col items-center justify-center rounded-sm border border-dashed border-border text-center">
             <Crown className="mb-2 h-8 w-8 text-muted-foreground/40" />
             <p className="text-sm font-medium text-muted-foreground">
               {locale === "pt-BR" ? "Nenhuma partida registrada ainda." : "No matches recorded yet."}
@@ -137,7 +137,7 @@ export function LeaderboardView() {
                     <tr key={i} className="border-b last:border-0 hover:bg-muted/30">
                       <td className="px-3 py-2">
                         <span className={cn(
-                          "flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold",
+                          "flex h-7 w-7 items-center justify-center rounded-sm text-xs font-bold",
                           i === 0 ? "bg-[var(--warning)]/15 text-[var(--warning)]" :
                           i === 1 ? "bg-muted-foreground/15 text-muted-foreground" :
                           i === 2 ? "bg-[#cd7f32]/15 text-[#cd7f32]" :
@@ -189,7 +189,7 @@ export function LeaderboardView() {
               <div
                 key={d.id}
                 className={cn(
-                  "flex flex-col items-center rounded-lg border p-3 text-center transition-colors",
+                  "flex flex-col items-center rounded-sm border p-3 text-center transition-colors",
                   isCurrent ? "border-primary bg-primary/5" : "border-border",
                   !isPassed && "opacity-60"
                 )}
@@ -198,7 +198,7 @@ export function LeaderboardView() {
                 <p className="text-xs font-medium">{t(DIV_LABEL_KEYS[d.id as keyof typeof DIV_LABEL_KEYS])}</p>
                 <p className="text-[10px] text-muted-foreground">{d.min}+</p>
                 {isCurrent && (
-                  <span className="mt-1 rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-semibold text-primary-foreground">
+                  <span className="mt-1 rounded-sm bg-primary px-1.5 py-0.5 text-[9px] font-semibold text-primary-foreground">
                     ★
                   </span>
                 )}
@@ -234,7 +234,7 @@ export function LeaderboardView() {
 
 function LocalStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border bg-card p-3">
+    <div className="rounded-sm border bg-card p-3">
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="mt-1 text-lg font-bold">{value}</p>
     </div>

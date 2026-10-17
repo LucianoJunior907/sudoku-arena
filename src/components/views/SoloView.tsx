@@ -111,7 +111,7 @@ export function SoloView() {
 
         {/* Share / Load shared board */}
         <Card className="flex items-center gap-3 border-primary/30 bg-primary/5 p-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-primary/10 text-primary">
             <Share2 className="h-5 w-5" />
           </div>
           <div className="flex-1">
@@ -126,7 +126,7 @@ export function SoloView() {
 
         {/* Guide practice shortcut */}
         <Card className="flex items-center gap-3 border-primary/20 p-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-primary/10 text-primary">
             <GraduationCap className="h-5 w-5" />
           </div>
           <div className="flex-1">

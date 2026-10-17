@@ -107,7 +107,7 @@ export function SettingsView() {
                     key={th.id}
                     onClick={() => setTheme(th.id)}
                     className={cn(
-                      "flex flex-col items-center gap-1.5 rounded-lg border p-3 text-xs transition-colors",
+                      "flex flex-col items-center gap-1.5 rounded-sm border p-3 text-xs transition-colors",
                       active ? "border-primary bg-primary/5 text-primary" : "border-border hover:bg-muted/50"
                     )}
                   >
@@ -129,7 +129,7 @@ export function SettingsView() {
                     key={l}
                     onClick={() => setLocale(l as Locale)}
                     className={cn(
-                      "flex items-center justify-between rounded-lg border px-3 py-2 text-sm transition-colors",
+                      "flex items-center justify-between rounded-sm border px-3 py-2 text-sm transition-colors",
                       active ? "border-primary bg-primary/5 text-primary" : "border-border hover:bg-muted/50"
                     )}
                   >
@@ -215,7 +215,7 @@ export function SettingsView() {
                     key={bt.id}
                     onClick={() => setSettings({ boardTheme: bt.id })}
                     className={cn(
-                      "flex flex-col items-center gap-1.5 rounded-lg border p-2 text-xs transition-all",
+                      "flex flex-col items-center gap-1.5 rounded-sm border p-2 text-xs transition-all",
                       active
                         ? "border-primary bg-primary/5 text-primary shadow-sm"
                         : "border-border hover:bg-muted/50 hover:border-primary/30"
@@ -279,7 +279,7 @@ export function SettingsView() {
         </dl>
 
         {/* Replay tour */}
-        <div className="mt-4 flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
+        <div className="mt-4 flex items-center gap-3 rounded-sm border border-primary/20 bg-primary/5 p-3">
           <GraduationCap className="h-5 w-5 shrink-0 text-primary" />
           <div className="flex-1">
             <p className="text-sm font-medium">{t("tour.replayTour")}</p>

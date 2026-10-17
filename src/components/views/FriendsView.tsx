@@ -152,7 +152,7 @@ export function FriendsView() {
         <p className="mt-1 text-sm text-muted-foreground">{t("friends.subtitle")}</p>
       </div>
 
-      <div className="flex items-center gap-2 rounded-lg border border-[var(--success)]/30 bg-[var(--success)]/5 p-3 text-sm">
+      <div className="flex items-center gap-2 rounded-sm border border-[var(--success)]/30 bg-[var(--success)]/5 p-3 text-sm">
         <Wifi className="h-4 w-4 text-[var(--success)]" />
         <span className="font-medium text-[var(--success)]">
           {locale === "pt-BR" ? "Amigos online!" : "Friends online!"}
@@ -181,7 +181,7 @@ export function FriendsView() {
         {searchResult && (
           <div className="mt-3">
             {searchResult.found && searchResult.user ? (
-              <div className="flex items-center justify-between rounded-lg border p-3">
+              <div className="flex items-center justify-between rounded-sm border p-3">
                 <div className="flex items-center gap-3">
                   <Avatar seed={searchResult.user.avatarSeed} size={40} />
                   <div>
@@ -220,11 +220,11 @@ export function FriendsView() {
               <h3 className="mb-3 flex items-center gap-2 font-semibold">
                 <Inbox className="h-4 w-4 text-[var(--warning)]" />
                 {locale === "pt-BR" ? "Solicitações recebidas" : "Incoming requests"}
-                <span className="rounded-full bg-[var(--warning)]/15 px-2 py-0.5 text-xs font-bold text-[var(--warning)]">{pending.length}</span>
+                <span className="rounded-sm bg-[var(--warning)]/15 px-2 py-0.5 text-xs font-bold text-[var(--warning)]">{pending.length}</span>
               </h3>
               <div className="space-y-2">
                 {pending.map((req) => (
-                  <div key={req.userId} className="flex items-center justify-between rounded-lg border p-3">
+                  <div key={req.userId} className="flex items-center justify-between rounded-sm border p-3">
                     <div className="flex items-center gap-3">
                       <Avatar seed={req.avatarSeed} size={36} />
                       <div>
@@ -252,11 +252,11 @@ export function FriendsView() {
               <h3 className="mb-3 flex items-center gap-2 font-semibold">
                 <Clock className="h-4 w-4 text-muted-foreground" />
                 {locale === "pt-BR" ? "Solicitações enviadas" : "Sent requests"}
-                <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-bold text-muted-foreground">{sent.length}</span>
+                <span className="rounded-sm bg-muted px-2 py-0.5 text-xs font-bold text-muted-foreground">{sent.length}</span>
               </h3>
               <div className="space-y-2">
                 {sent.map((req) => (
-                  <div key={req.userId} className="flex items-center justify-between rounded-lg border p-3 opacity-70">
+                  <div key={req.userId} className="flex items-center justify-between rounded-sm border p-3 opacity-70">
                     <div className="flex items-center gap-3">
                       <Avatar seed={req.avatarSeed} size={36} />
                       <div>
@@ -276,18 +276,18 @@ export function FriendsView() {
               <Users className="h-4 w-4 text-primary" />
               {t("friends.friendsList")}
               {friends.length > 0 && (
-                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">{friends.length}</span>
+                <span className="rounded-sm bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">{friends.length}</span>
               )}
             </h3>
             {friends.length === 0 ? (
-              <div className="flex h-32 flex-col items-center justify-center rounded-lg border border-dashed border-border text-center">
+              <div className="flex h-32 flex-col items-center justify-center rounded-sm border border-dashed border-border text-center">
                 <Users className="mb-2 h-8 w-8 text-muted-foreground/40" />
                 <p className="text-sm text-muted-foreground">{t("friends.noFriends")}</p>
               </div>
             ) : (
               <div className="space-y-2">
                 {friends.map((friend) => (
-                  <div key={friend.userId} className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/30">
+                  <div key={friend.userId} className="flex items-center justify-between rounded-sm border p-3 hover:bg-muted/30">
                     <div className="flex items-center gap-3">
                       <Avatar seed={friend.avatarSeed} size={36} />
                       <div>
@@ -296,7 +296,7 @@ export function FriendsView() {
                       </div>
                     </div>
                     <span className="flex items-center gap-1 text-xs text-[var(--success)]">
-                      <span className="h-2 w-2 rounded-full bg-[var(--success)]" />
+                      <span className="h-2 w-2 rounded-sm bg-[var(--success)]" />
                       {t("friends.online")}
                     </span>
                   </div>
