@@ -11,11 +11,32 @@ export interface AuthUser {
   username: string | null;
 }
 
+const GUEST_KEY = "sudoku-arena-guest";
+const GUEST_USER: AuthUser = {
+  id: "guest",
+  email: "",
+  displayName: "Visitante",
+  username: null,
+};
+
 export function useAuth() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isGuest, setIsGuest] = useState(false);
 
   useEffect(() => {
+    // Check if user previously chose guest mode (persists across reloads)
+    try {
+      if (localStorage.getItem(GUEST_KEY) === "1") {
+        setIsGuest(true);
+        setUser(GUEST_USER);
+        setLoading(false);
+        return;
+      }
+    } catch {
+      // localStorage might be unavailable
+    }
+
     // Get initial session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
@@ -107,8 +128,35 @@ export function useAuth() {
     return { error };
   };
 
+  // Enter guest mode — lets user explore local features without an account
+  const enterGuestMode = () => {
+    try {
+      localStorage.setItem(GUEST_KEY, "1");
+    } catch {
+      // ignore
+    }
+    setIsGuest(true);
+    setUser(GUEST_USER);
+  };
+
+  // Exit guest mode — return to the login screen
+  const exitGuestMode = () => {
+    try {
+      localStorage.removeItem(GUEST_KEY);
+    } catch {
+      // ignore
+    }
+    setIsGuest(false);
+    setUser(null);
+  };
+
   // Full sign out — clears local session + browser storage
   const signOut = async () => {
+    // If in guest mode, just exit guest mode
+    if (isGuest) {
+      exitGuestMode();
+      return;
+    }
     // First sync display info to cloud
     if (user) {
       try {
@@ -138,10 +186,13 @@ export function useAuth() {
   return {
     user,
     loading,
+    isGuest,
     signInWithUsernameOrEmail,
     signUpWithEmail,
     signInWithGoogle,
     signOut,
+    enterGuestMode,
+    exitGuestMode,
   };
 }
 

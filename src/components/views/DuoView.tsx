@@ -11,6 +11,7 @@ import { Avatar } from "@/components/common/Avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { NeedsBackendBanner, RulesList } from "@/components/common/ComingSoon";
+import { GuestLoginRequired } from "@/components/common/GuestLoginRequired";
 import { createRoom, joinRoom, fetchRoomParticipants, subscribeToRoom } from "@/lib/supabase/matches";
 import { Users, Lock, Globe, Loader2, Wifi, Copy, Check, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -31,7 +32,7 @@ interface Participant {
 
 export function DuoView() {
   const { t, locale } = useI18n();
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const profile = useAppStore((s) => s.profile);
   const [isPrivate, setIsPrivate] = useState(false);
   const [code, setCode] = useState("");
@@ -112,6 +113,10 @@ export function DuoView() {
       // ignore
     }
   };
+
+  if (isGuest) {
+    return <GuestLoginRequired featureName={locale === "pt-BR" ? "Duo — Multiplayer" : "Duo — Multiplayer"} />;
+  }
 
   if (!user) {
     return (

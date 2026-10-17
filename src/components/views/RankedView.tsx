@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/common/Avatar";
 import { Progress } from "@/components/ui/progress";
 import { RulesList } from "@/components/common/ComingSoon";
+import { GuestLoginRequired } from "@/components/common/GuestLoginRequired";
 import { DIVISIONS } from "@/lib/progression/progression";
 import {
   joinRankedQueue,
@@ -45,7 +46,7 @@ type Phase = "lobby" | "queue" | "match" | "result";
 
 export function RankedView() {
   const { t, locale } = useI18n();
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const profile = useAppStore((s) => s.profile);
   const setRoute = useAppStore((s) => s.setRoute);
 
@@ -299,6 +300,10 @@ export function RankedView() {
       if (user && phase === "queue") leaveRankedQueue(user.id);
     };
   }, []);
+
+  if (isGuest) {
+    return <GuestLoginRequired featureName={locale === "pt-BR" ? "Ranked — Competitivo" : "Ranked — Competitive"} />;
+  }
 
   if (!user) {
     return (

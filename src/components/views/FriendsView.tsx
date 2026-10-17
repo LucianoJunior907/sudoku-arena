@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/common/Avatar";
 import { useAuth } from "@/lib/supabase/auth";
+import { GuestLoginRequired } from "@/components/common/GuestLoginRequired";
 import {
   fetchFriends,
   fetchPendingRequests,
@@ -23,7 +24,7 @@ import { toast } from "sonner";
 
 export function FriendsView() {
   const { t, locale } = useI18n();
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const [friends, setFriends] = useState<FriendEntry[]>([]);
   const [pending, setPending] = useState<FriendEntry[]>([]);
   const [sent, setSent] = useState<FriendEntry[]>([]);
@@ -121,6 +122,10 @@ export function FriendsView() {
       load();
     }
   };
+
+  if (isGuest) {
+    return <GuestLoginRequired featureName={locale === "pt-BR" ? "Amigos" : "Friends"} />;
+  }
 
   if (!user) {
     return (

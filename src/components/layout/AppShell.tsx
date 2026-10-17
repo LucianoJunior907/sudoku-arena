@@ -201,9 +201,9 @@ export function AppShell({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("keydown", handler);
   }, [route, setRoute]);
 
-  // If not authenticated, show ONLY the login screen (no app content behind it)
-  const { user: authUser, loading: authLoading } = useAuth();
-  if (!authUser && !authLoading) {
+  // If not authenticated (and not in guest mode), show ONLY the login screen
+  const { user: authUser, loading: authLoading, isGuest } = useAuth();
+  if (!authUser && !authLoading && !isGuest) {
     return <AuthDialog />;
   }
 
