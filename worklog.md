@@ -717,3 +717,24 @@ Task: Full project review, QA, fix regressions, redeploy.
 2. **File persistence** — the sandbox keeps resetting files; recommend committing to Git for permanence
 3. **Supabase env vars on Vercel** — need to be re-set after team changes (currently set via API)
 4. **Ranked matchmaking** — needs 2+ real players online to test properly
+
+---
+Task ID: revert-1
+Agent: main
+Task: Revert the mobile-first geometric redesign (user did not like it) and restore the previous visual version.
+
+Work Log:
+- Identified the redesign commit: `3f00bfb Redesign: mobile-first, geometric borders, reduced radius` (radius 0.7rem → 0.375rem, rounded-xl → rounded-md/sm, compact AuthDialog, etc.)
+- Confirmed the two commits after the redesign (`b45d20c`, `8211731`) only touch `src/lib/supabase/auth.ts` and `src/lib/supabase/client.ts` — no overlap with redesign files, so a clean targeted revert is safe.
+- Ran `git revert --no-commit 3f00bfb` — applied cleanly with NO conflicts across all 54 files.
+- Reverted `.zscripts/dev.pid` mode change separately.
+- Committed as `9c69843 Revert redesign: restore previous visual version (rounded-xl, 0.7rem radius)`.
+- Verified restoration on disk: `src/app/globals.css` → `--radius: 0.7rem`; `src/components/ui/button.tsx` → `rounded-md` (was `rounded-sm`).
+- Cleared stale `.next` Turbopack cache (old compiled CSS was still serving `.375rem`) and restarted the dev server.
+- Verified served CSS via curl: the live stylesheet now reports `--radius: .7rem` (the restored value), confirming the revert works end-to-end.
+
+Stage Summary:
+- Redesign fully undone; project is back to the pre-redesign visual state (commit `e629bec` era) while KEEPING the two later Supabase auth bug fixes (signInWithUsernameOrEmail simplification + client Proxy nested-object fix).
+- All 54 files restored: globals.css, every shadcn/ui component, all layout/sudoku/common/settings components, and all views.
+- Served CSS confirmed: `--radius: .7rem` (restored), not `.375rem` (redesign).
+- Known infra issue (NOT a code issue): the sandbox process reaper kills any detached `next-server` after ~40-60s. The revert code is correct and serves HTTP 200 with restored styling whenever the server is up. The sandbox/preview panel manages long-term server uptime.
