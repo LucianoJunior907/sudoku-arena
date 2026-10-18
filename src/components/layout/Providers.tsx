@@ -7,6 +7,7 @@ import { OnboardingDialog } from "@/components/layout/OnboardingDialog";
 import { LevelUpToast } from "@/components/layout/LevelUpToast";
 import { AchievementToast } from "@/components/layout/AchievementToast";
 import { GuidedTour } from "@/components/layout/GuidedTour";
+import { AuthProvider } from "@/lib/supabase/auth";
 
 export function Providers({ children }: { children: ReactNode }) {
   const hydrate = useAppStore((s) => s.hydrate);
@@ -24,11 +25,13 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-      {children}
-      {hydrated && !onboarding.completed && <OnboardingDialog />}
-      {showTour && <GuidedTour open={showTour} onComplete={completeTour} />}
-      {hydrated && <LevelUpToast />}
-      {hydrated && <AchievementToast />}
+      <AuthProvider>
+        {children}
+        {hydrated && !onboarding.completed && <OnboardingDialog />}
+        {showTour && <GuidedTour open={showTour} onComplete={completeTour} />}
+        {hydrated && <LevelUpToast />}
+        {hydrated && <AchievementToast />}
+      </AuthProvider>
     </ThemeProvider>
   );
 }
