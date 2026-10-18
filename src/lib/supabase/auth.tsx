@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
 import { supabase } from "./client";
 import type { User } from "@supabase/supabase-js";
 
@@ -43,7 +43,22 @@ async function buildAuthUser(u: User): Promise<AuthUser> {
   return authUser;
 }
 
-export function useAuth() {
+interface AuthContextValue {
+  user: AuthUser | null;
+  loading: boolean;
+  isGuest: boolean;
+  signInWithUsernameOrEmail: (identifier: string, password: string) => Promise<{ error: Error | null }>;
+  signUpWithEmail: (email: string, password: string, displayName: string, username: string) => Promise<{ data: unknown; error: Error | null }>;
+  signInWithGoogle: () => Promise<{ error: Error | null }>;
+  resetPassword: (email: string) => Promise<{ error: Error | null }>;
+  signOut: () => Promise<void>;
+  enterGuestMode: () => void;
+  exitGuestMode: () => void;
+}
+
+const AuthContext = createContext<AuthContextValue | null>(null);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
   // Lazy-initialize guest state from localStorage so we don't need to
   // call setState synchronously inside the effect (avoids cascading
   // renders and the react-hooks/set-state-in-effect lint rule).
@@ -185,7 +200,7 @@ export function useAuth() {
       email: emailToUse,
       password,
     });
-    return { error };
+    return { error: error as Error | null };
   }, []);
 
   // Sign up with email + password. display_name and username are passed
@@ -201,7 +216,7 @@ export function useAuth() {
         emailRedirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
       },
     });
-    return { data, error };
+    return { data, error: error as Error | null };
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
@@ -212,7 +227,7 @@ export function useAuth() {
         queryParams: { prompt: "select_account" },
       },
     });
-    return { error };
+    return { error: error as Error | null };
   }, []);
 
   // Request a password reset email. Supabase sends an email with a link
@@ -221,10 +236,12 @@ export function useAuth() {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: typeof window !== "undefined" ? `${window.location.origin}/#reset` : undefined,
     });
-    return { error };
+    return { error: error as Error | null };
   }, []);
 
-  // Enter guest mode — lets user explore local features without an account
+  // Enter guest mode — lets user explore local features without an account.
+  // Because this is a Context, the state change propagates to ALL
+  // consumers (AppShell, AuthDialog, views, etc.) simultaneously.
   const enterGuestMode = useCallback(() => {
     try {
       localStorage.setItem(GUEST_KEY, "1");
@@ -233,6 +250,7 @@ export function useAuth() {
     }
     setIsGuest(true);
     setUser(GUEST_USER);
+    setLoading(false);
   }, []);
 
   // Exit guest mode — return to the login screen. We DO NOT call
@@ -274,7 +292,7 @@ export function useAuth() {
     setUser(null);
   }, [isGuest, exitGuestMode]);
 
-  return {
+  const value: AuthContextValue = {
     user,
     loading,
     isGuest,
@@ -286,4 +304,20 @@ export function useAuth() {
     enterGuestMode,
     exitGuestMode,
   };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+/**
+ * useAuth — consume the auth context.
+ * Must be used inside <AuthProvider>. All consumers share the SAME
+ * auth state (single source of truth), so enterGuestMode / signOut /
+ * login called from any component immediately reflect everywhere.
+ */
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) {
+    throw new Error("useAuth must be used within an <AuthProvider>");
+  }
+  return ctx;
 }
