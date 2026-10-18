@@ -56,3 +56,4 @@ server.log
 dev.log
 db/
 // Auto-deploy test Fri Oct 16 12:02:12 UTC 2026
+tool-results/
