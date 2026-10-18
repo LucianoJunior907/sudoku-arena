@@ -2089,3 +2089,36 @@ Plus significant gaps: no email-confirmation handling, no password reset flow, n
 
 No fixes were applied — this is an audit report only. Each finding includes exact file:line references and code excerpts above for the implementer to act on.
 
+
+---
+Task ID: auth-audit-final
+Agent: main
+Task: Complete authentication audit + fixes + E2E testing per user's detailed brief.
+
+Work Log:
+- Ran two parallel audit agents (AUDIT-AUTH-CODE, AUDIT-AUTH-DB) — full reports in worklog.
+- Fixed 4 CRITICAL bugs, 6 HIGH bugs, security hardening, added password reset flow.
+- Discovered and fixed a 5th CRITICAL bug during E2E testing: useAuth was NOT a Context — each component had independent state, so enterGuestMode only updated AuthDialog, not AppShell. Guest mode rendered only the header, not the full app. Fixed by converting to AuthProvider Context.
+- All fixes pushed to GitHub/Vercel. E2E tested on Vercel production (https://sudoku-arena-br.vercel.app/).
+
+E2E TEST RESULTS (Vercel production):
+1. ✅ Onboarding appears FIRST (not covered by login) — z-index fix
+2. ✅ Login page: all features present (forgot password, Google, guest)
+3. ✅ Login wrong password → "Credenciais inválidas." toast VISIBLE (Sonner z-index fix)
+4. ✅ Login nonexistent user → same generic message (no email enumeration)
+5. ✅ Forgot password UI works (reset form, back button)
+6. ✅ Guest mode → FULL app renders (sidebar + lobby + 14 nav items) — AuthProvider fix
+7. ✅ Guest accesses Duo → login prompt shown
+8. ✅ Exit guest → back to login, GUEST_KEY removed from localStorage
+9. ✅ Signup after exit guest → user enters app (onAuthStateChange fires)
+10. ✅ Login with existing account → enters app
+11. ✅ Session persists after reload
+12. ✅ Logout → back to login, session cleared
+13. ✅ Signup errors generic (no "already registered" leak)
+14. ✅ Lint clean
+
+Stage Summary:
+- All critical auth flows working on Vercel production.
+- Guest mode bug (the biggest one) fully fixed via AuthProvider Context.
+- Security: error messages don't leak, RLS fixes documented in supabase-audit-fixes.sql (needs user to run).
+- Pending: Google OAuth E2E (needs Google credentials to test redirect), email confirmation (depends on Supabase config), mobile real device test.
