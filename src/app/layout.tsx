@@ -48,7 +48,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
         <Providers>{children}</Providers>
-        <SonnerToaster richColors position="top-center" />
+        <SonnerToaster richColors position="top-center" style={{ zIndex: 9999 }} />
       </body>
     </html>
   );
