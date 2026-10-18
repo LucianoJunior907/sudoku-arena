@@ -201,10 +201,23 @@ export function AppShell({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("keydown", handler);
   }, [route, setRoute]);
 
-  // If not authenticated (and not in guest mode), show ONLY the login screen
+  // If not authenticated (and not in guest mode), show ONLY the login screen.
+  // But wait for onboarding to complete first — the language picker
+  // (OnboardingDialog, rendered by Providers at z-50) must be visible
+  // without being covered by the full-screen AuthDialog (z-[200]).
   const { user: authUser, loading: authLoading, isGuest } = useAuth();
-  if (!authUser && !authLoading && !isGuest) {
+  const onboardingCompleted = useAppStore((s) => s.onboarding.completed);
+  if (!authUser && !authLoading && !isGuest && onboardingCompleted) {
     return <AuthDialog />;
+  }
+  // While onboarding is pending OR auth is loading, show a minimal loader.
+  // The OnboardingDialog (from Providers) renders on top of this.
+  if (!authUser && !isGuest && (!onboardingCompleted || authLoading)) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        {authLoading && <Loader2 className="h-8 w-8 animate-spin text-primary" />}
+      </div>
+    );
   }
 
   // Show loading spinner while checking auth

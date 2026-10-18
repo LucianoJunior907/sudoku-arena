@@ -6,7 +6,7 @@ import { useI18n } from "@/lib/i18n/context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Grid3x3, Mail, Lock, User, Chrome, LogOut, Loader2, AtSign, Eye, EyeOff, Ghost, LogIn, AlertTriangle } from "lucide-react";
+import { Grid3x3, Mail, Lock, User, Chrome, LogOut, Loader2, AtSign, Eye, EyeOff, Ghost, LogIn, AlertTriangle, KeyRound, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { checkUsernameAvailable, setUsername } from "@/lib/supabase/matches";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 
 export function AuthDialog() {
   const { locale } = useI18n();
-  const { user, loading, isGuest, signInWithUsernameOrEmail, signUpWithEmail, signInWithGoogle, signOut, enterGuestMode, exitGuestMode } = useAuth();
+  const { user, loading, isGuest, signInWithUsernameOrEmail, signUpWithEmail, signInWithGoogle, resetPassword, signOut, enterGuestMode, exitGuestMode } = useAuth();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -26,6 +26,9 @@ export function AuthDialog() {
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [resetMode, setResetMode] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetSent, setResetSent] = useState(false);
 
   const checkUsername = async (value: string) => {
     setUsernameState(value);
@@ -86,18 +89,46 @@ export function AuthDialog() {
         return;
       }
 
-      const { error } = await signUpWithEmail(email, password, name || username, username);
+      const { data: signUpData, error } = await signUpWithEmail(email, password, name || username, username);
       if (error) {
-        toast.error(error.message);
+        // Map known Supabase errors to generic, safe messages.
+        // We never reveal whether an email is already registered
+        // (email-enumeration protection).
+        const msg = (error.message || "").toLowerCase();
+        if (msg.includes("already registered") || msg.includes("already been registered")) {
+          toast.error(locale === "pt-BR"
+            ? "Não foi possível criar a conta. Verifique os dados ou tente entrar."
+            : "Could not create the account. Check your details or try signing in.");
+        } else if (msg.includes("password") && msg.includes("weak")) {
+          toast.error(locale === "pt-BR" ? "Senha muito fraca. Use ao menos 6 caracteres." : "Password too weak. Use at least 6 characters.");
+        } else if (msg.includes("rate limit") || msg.includes("too many")) {
+          toast.error(locale === "pt-BR" ? "Muitas tentativas. Aguarde um momento." : "Too many attempts. Please wait a moment.");
+        } else {
+          toast.error(locale === "pt-BR" ? "Não foi possível criar a conta." : "Could not create the account.");
+        }
       } else {
-        // After signup, set the username in the profile
-        setTimeout(async () => {
-          const result = await setUsername(username);
-          if (!result.success) {
-            toast.error(result.error || "Failed to set username");
+        // Determine if email confirmation is required. When confirmation
+        // is enabled in Supabase, signUp returns a user but no session.
+        const needsConfirmation = !signUpData?.session && !!signUpData?.user;
+        if (needsConfirmation) {
+          toast.success(locale === "pt-BR"
+            ? "Conta criada! Verifique seu email para confirmar."
+            : "Account created! Check your email to confirm.");
+        } else {
+          // No confirmation needed — set the username now that the user
+          // is authenticated. onAuthStateChange will pick up the session.
+          try {
+            const result = await setUsername(username);
+            if (!result.success && result.error) {
+              // Non-fatal: the profile exists, just without a username yet.
+              // The user can set it later from Settings.
+              console.warn("setUsername failed:", result.error);
+            }
+          } catch {
+            // ignore — non-critical
           }
-        }, 1500);
-        toast.success(locale === "pt-BR" ? "Conta criada!" : "Account created!");
+          toast.success(locale === "pt-BR" ? "Conta criada! Bem-vindo!" : "Account created! Welcome!");
+        }
       }
     } else {
       // Login by username or email
@@ -108,7 +139,17 @@ export function AuthDialog() {
       }
       const { error } = await signInWithUsernameOrEmail(loginIdentifier, password);
       if (error) {
-        toast.error(locale === "pt-BR" ? "Credenciais inválidas." : "Invalid credentials.");
+        const msg = (error.message || "").toLowerCase();
+        if (msg.includes("email not confirmed") || msg.includes("not confirmed")) {
+          toast.error(locale === "pt-BR"
+            ? "Confirme seu email antes de entrar. Verifique sua caixa de entrada."
+            : "Please confirm your email before signing in. Check your inbox.");
+        } else if (msg.includes("rate limit") || msg.includes("too many")) {
+          toast.error(locale === "pt-BR" ? "Muitas tentativas. Aguarde um momento." : "Too many attempts. Please wait a moment.");
+        } else {
+          // Generic message — never reveal whether the email exists.
+          toast.error(locale === "pt-BR" ? "Credenciais inválidas." : "Invalid credentials.");
+        }
       } else {
         toast.success(locale === "pt-BR" ? "Bem-vindo!" : "Welcome!");
       }
@@ -119,7 +160,33 @@ export function AuthDialog() {
   const handleGoogle = async () => {
     setBusy(true);
     const { error } = await signInWithGoogle();
-    if (error) toast.error(error.message);
+    if (error) {
+      const msg = (error.message || "").toLowerCase();
+      if (msg.includes("provider") && msg.includes("not enabled")) {
+        toast.error(locale === "pt-BR"
+          ? "Login com Google não está habilitado. Contate o administrador."
+          : "Google login is not enabled. Contact the administrator.");
+      } else {
+        toast.error(locale === "pt-BR" ? "Não foi possível entrar com Google." : "Could not sign in with Google.");
+      }
+    }
+    setBusy(false);
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetEmail.trim()) return;
+    setBusy(true);
+    const { error } = await resetPassword(resetEmail.trim());
+    if (error) {
+      // Don't reveal whether the email exists — always show the same message
+      toast.error(locale === "pt-BR" ? "Não foi possível enviar o email." : "Could not send the email.");
+    } else {
+      setResetSent(true);
+      toast.success(locale === "pt-BR"
+        ? "Se o email existir, você receberá um link de redefinição."
+        : "If the email exists, you'll receive a reset link.");
+    }
     setBusy(false);
   };
 
@@ -167,6 +234,63 @@ export function AuthDialog() {
         </div>
 
         <div className="rounded-xl border border-border bg-card p-6 shadow-xl">
+          {resetMode ? (
+            <div className="space-y-4">
+              <button
+                type="button"
+                onClick={() => setResetMode(false)}
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                {locale === "pt-BR" ? "Voltar ao login" : "Back to login"}
+              </button>
+              <div className="text-center">
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                  <KeyRound className="h-6 w-6 text-primary" />
+                </div>
+                <h2 className="text-lg font-semibold">
+                  {locale === "pt-BR" ? "Recuperar senha" : "Reset password"}
+                </h2>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {locale === "pt-BR"
+                    ? "Digite seu email. Enviaremos um link para redefinir sua senha."
+                    : "Enter your email. We'll send you a link to reset your password."}
+                </p>
+              </div>
+              {resetSent ? (
+                <div className="rounded-lg border border-[var(--success)]/40 bg-[var(--success)]/5 p-4 text-center text-sm">
+                  <p className="font-medium text-[var(--success)]">
+                    {locale === "pt-BR" ? "Email enviado!" : "Email sent!"}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {locale === "pt-BR"
+                      ? "Se o email existir, você receberá um link de redefinição. Verifique sua caixa de entrada e o spam."
+                      : "If the email exists, you'll receive a reset link. Check your inbox and spam folder."}
+                  </p>
+                </div>
+              ) : (
+                <form onSubmit={handleResetPassword} className="space-y-3">
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="resetEmail"
+                      type="email"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      placeholder="email@example.com"
+                      className="pl-9"
+                      required
+                      autoFocus
+                    />
+                  </div>
+                  <Button type="submit" className="w-full" disabled={busy || !isSupabaseConfigured}>
+                    {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : (locale === "pt-BR" ? "Enviar link" : "Send link")}
+                  </Button>
+                </form>
+              )}
+            </div>
+          ) : (
+          <>
           <h2 className="mb-1 text-center text-lg font-semibold">
             {mode === "signin"
               ? (locale === "pt-BR" ? "Entrar" : "Sign In")
@@ -326,10 +450,23 @@ export function AuthDialog() {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={showPassword ? (locale === "pt-BR" ? "Ocultar senha" : "Hide password") : (locale === "pt-BR" ? "Mostrar senha" : "Show password")}
+                  aria-pressed={showPassword}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+              {mode === "signin" && (
+                <div className="text-right">
+                  <button
+                    type="button"
+                    onClick={() => { setResetMode(true); setResetSent(false); setResetEmail(""); }}
+                    className="text-xs font-medium text-primary hover:underline"
+                  >
+                    {locale === "pt-BR" ? "Esqueci a senha" : "Forgot password"}
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Password confirmation (signup only) */}
@@ -358,6 +495,8 @@ export function AuthDialog() {
                     type="button"
                     onClick={() => setShowConfirm(!showConfirm)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label={showConfirm ? (locale === "pt-BR" ? "Ocultar senha" : "Hide password") : (locale === "pt-BR" ? "Mostrar senha" : "Show password")}
+                    aria-pressed={showConfirm}
                   >
                     {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -433,6 +572,8 @@ export function AuthDialog() {
               ? "Explore o modo solo e o guia sem criar conta."
               : "Explore solo mode and the guide without an account."}
           </p>
+          </>
+          )}
         </div>
       </div>
     </div>
