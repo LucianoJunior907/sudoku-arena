@@ -83,6 +83,8 @@ export async function tryMatchmake(
   const p = generatePuzzle(difficulty, seed);
 
   // Create the match (player1 = us, player2 = opponent)
+  // Use .maybeSingle() — if RLS blocks the insert, .single() would throw
+  // an additional 406 on top of the 403, masking the real error.
   const { data: match, error: mError } = await supabase
     .from("ranked_matches")
     .insert({
@@ -93,7 +95,7 @@ export async function tryMatchmake(
       status: "active",
     })
     .select()
-    .single();
+    .maybeSingle();
 
   if (mError || !match) {
     return { matchId: null, error: mError?.message ?? "Failed to create match" };
@@ -109,6 +111,9 @@ export async function tryMatchmake(
  * Check if a match was created for us (we're player2).
  */
 export async function checkForMatch(userId: string): Promise<string | null> {
+  // Use .maybeSingle() instead of .single() — when no match exists (normal
+  // state while waiting in queue), .single() throws HTTP 406 "Not Acceptable".
+  // .maybeSingle() returns null gracefully instead.
   const { data, error } = await supabase
     .from("ranked_matches")
     .select("id")
@@ -116,7 +121,7 @@ export async function checkForMatch(userId: string): Promise<string | null> {
     .eq("status", "active")
     .order("started_at", { ascending: false })
     .limit(1)
-    .single();
+    .maybeSingle();
 
   if (error || !data) return null;
   return data.id;
@@ -130,7 +135,7 @@ export async function fetchRankedMatch(matchId: string): Promise<RankedMatch | n
     .from("ranked_matches")
     .select("*")
     .eq("id", matchId)
-    .single();
+    .maybeSingle();
 
   if (error || !data) return null;
 
@@ -267,7 +272,7 @@ export async function fetchOpponentName(opponentId: string): Promise<string> {
     .from("profiles")
     .select("display_name")
     .eq("id", opponentId)
-    .single();
+    .maybeSingle();
 
   if (error || !data) return "Opponent";
   return data.display_name;
