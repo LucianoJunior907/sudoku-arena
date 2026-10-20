@@ -118,8 +118,8 @@ export function RankedView() {
     return () => window.removeEventListener("ranked-forfeit-confirm", handler);
   }, []);
 
-  const division = localDivision(profile.rating);
-  const divInfo = DIVISIONS.find((d) => d.id === division)!;
+  const division = localDivision(profile?.rating ?? 0);
+  const divInfo = DIVISIONS.find((d) => d.id === division) ?? DIVISIONS[0];
   const filled = board.filter((v) => v !== 0).length - puzzle.filter((v) => v !== 0).length;
   const totalEmpty = puzzle.filter((v) => v === 0).length || 1;
   const progress = Math.round((filled / totalEmpty) * 100);
@@ -540,9 +540,9 @@ export function RankedView() {
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
-                <Avatar seed={profile.avatarSeed} size={32} className="rounded-md" />
+                <Avatar seed={profile?.avatarSeed ?? 'default'} size={32} className="rounded-md" />
                 <div>
-                  <p className="text-xs font-semibold">{profile.displayName}</p>
+                  <p className="text-xs font-semibold">{profile?.displayName ?? user?.displayName ?? 'Player'}</p>
                   <p className="text-[10px] text-muted-foreground">{myProgress}% · {errors}/3</p>
                 </div>
               </div>
@@ -664,7 +664,7 @@ export function RankedView() {
             <p className="text-xl font-bold" style={{ color: divInfo.color }}>
               {t(`leaderboard.${division}` as never)}
             </p>
-            <p className="text-sm text-muted-foreground">{t("ranked.yourRating")}: <span className="font-mono font-semibold text-foreground">{profile.rating}</span></p>
+            <p className="text-sm text-muted-foreground">{t("ranked.yourRating")}: <span className="font-mono font-semibold text-foreground">{profile?.rating ?? 0}</span></p>
           </div>
           <Button size="lg" onClick={handleJoinQueue} className="gap-1.5 shadow-md">
             <Zap className="h-4 w-4" />
@@ -684,7 +684,7 @@ export function RankedView() {
         <div className="space-y-2">
           {DIVISIONS.map((d, i) => {
             const isCurrent = d.id === division;
-            const isPassed = profile.rating >= d.min;
+            const isPassed = (profile?.rating ?? 0) >= d.min;
             return (
               <div key={d.id} className={cn(
                 "flex items-center gap-3 rounded-lg border p-3",
