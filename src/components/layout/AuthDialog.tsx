@@ -87,13 +87,6 @@ export function AuthDialog() {
         setBusy(false);
         return;
       }
-      // Validate password strength (8+ chars, upper, lower, number, special)
-      const pwdErr = validatePasswordStrength(password, locale);
-      if (pwdErr) {
-        toast.error(pwdErr);
-        setBusy(false);
-        return;
-      }
       // Re-check availability (but don't block on RPC errors — set_username will validate)
       const check = await checkUsernameAvailable(username);
       if (!check.available && (!check.error || check.error.toLowerCase().includes("taken") || check.error.toLowerCase().includes("already"))) {
