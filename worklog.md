@@ -2122,3 +2122,31 @@ Stage Summary:
 - Guest mode bug (the biggest one) fully fixed via AuthProvider Context.
 - Security: error messages don't leak, RLS fixes documented in supabase-audit-fixes.sql (needs user to run).
 - Pending: Google OAuth E2E (needs Google credentials to test redirect), email confirmation (depends on Supabase config), mobile real device test.
+
+---
+Task ID: ranked-overhaul-etapa-1-6
+Agent: main
+Task: Implement Etapas 1-6: ghost players, rating, forfeit, signup, animations, promotion.
+
+Work Log:
+- Etapa 1 (ghost players): Created supabase-ranked-overhaul.sql with heartbeat_ranked_queue RPC + try_matchmake_atomic RPC (SELECT FOR UPDATE SKIP LOCKED + cleans entries without heartbeat >30s + excludes users with active matches). ranked.ts rewritten to use these RPCs.
+- Etapa 2 (rating): finish_ranked_match RPC is the ONLY way to finish — validates solution server-side (validate_sudoku_solution), calculates Elo, updates profiles.rating atomically, persists rating_before/after. Idempotent.
+- Etapa 3 (forfeit + navigation): Abandon button + modal in RankedView. AppShell intercepts nav clicks when activeRankedMatchId is set — shows abandon confirmation. On confirm, dispatches event to RankedView which calls finishRankedMatch(abandon=true). Penalty: -50 extra on top of Elo loss.
+- Etapa 3 (new rule): Removed 10-min timer. First to solve correctly wins (validated server-side). Timer counts UP.
+- Etapa 4 (signup): Removed 'name' field. Signup = username, email, password, confirm. Password validation: 8+ chars, upper, lower, number, special. GoogleSignupCompletion component for Google users without username. buildAuthUser uses user_metadata.username fallback.
+- Etapa 5 (animations): ResultScreen with 3-5s staggered animations (rating before/change/after + division badge).
+- Etapa 6 (promotion): DivisionPromotionAnimation — full-screen sequence (old→morph→new emblem + rating + dots). Respects prefers-reduced-motion.
+- Build fix: duplicate pwdErr variable removed. Build passes (next build verified).
+- Deployed to Vercel: https://sudoku-arena-br.vercel.app/
+
+E2E Test Results (Vercel production):
+1. ✅ Signup has NO name field (username, email, password, confirm only)
+2. ✅ Weak password rejected: "A senha deve ter pelo menos 8 caracteres."
+3. ✅ Username availability check works
+4. ✅ Signup with strong password creates account
+5. ⚠️ Race condition: GoogleSignupCompletion appeared for email signup (fixed via user_metadata.username fallback — needs re-test after deploy)
+
+Stage Summary:
+- All code pushed (commit 70cf518). Build passes. Lint clean.
+- SQL file supabase-ranked-overhaul.sql MUST be run by user in Supabase SQL Editor.
+- Pending: E2E test of ranked matchmaking (needs 2 players), Google OAuth completion (needs Google account), mobile real device test.
