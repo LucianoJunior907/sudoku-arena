@@ -91,9 +91,32 @@ export function RankedView() {
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const reportedRef = useRef(false);
   const matchRef = useRef<RankedMatch | null>(null);
+  const setActiveRankedMatch = useAppStore((s) => s.setActiveRankedMatch);
 
   // Keep matchRef in sync for use in callbacks
   useEffect(() => { matchRef.current = match; }, [match]);
+
+  // Set/clear active ranked match in the store (for navigation interception)
+  useEffect(() => {
+    if (phase === "match" && match) {
+      setActiveRankedMatch(match.id);
+    } else {
+      setActiveRankedMatch(null);
+    }
+    return () => setActiveRankedMatch(null);
+  }, [phase, match, setActiveRankedMatch]);
+
+  // Listen for forfeit-by-navigation events (from AppShell when user
+  // confirms abandon via the navigation interception modal)
+  const handleFinishRef = useRef<(abandon?: boolean) => void>(() => {});
+  handleFinishRef.current = handleFinish;
+  useEffect(() => {
+    const handler = () => {
+      handleFinishRef.current(true);
+    };
+    window.addEventListener("ranked-forfeit-confirm", handler);
+    return () => window.removeEventListener("ranked-forfeit-confirm", handler);
+  }, []);
 
   const division = localDivision(profile.rating);
   const divInfo = DIVISIONS.find((d) => d.id === division)!;

@@ -208,6 +208,9 @@ interface AppState {
   // navigation
   route: RouteId;
   setRoute: (r: RouteId) => void;
+  // Active ranked match — when set, AppShell intercepts navigation
+  activeRankedMatchId: string | null;
+  setActiveRankedMatch: (id: string | null) => void;
 
   // settings
   settings: AppSettings;
@@ -300,6 +303,11 @@ function computeXpSafe(input: RecordGameInput): number {
 export const useAppStore = create<AppState>((set, get) => ({
   route: "lobby",
   setRoute: (r) => set({ route: r }),
+
+  // Active ranked match tracking — when set, navigation is intercepted
+  // (AppShell shows an abandon modal instead of navigating away).
+  activeRankedMatchId: null as string | null,
+  setActiveRankedMatch: (id: string | null) => set({ activeRankedMatchId: id }),
 
   settings: DEFAULT_SETTINGS,
   hydrated: false,
