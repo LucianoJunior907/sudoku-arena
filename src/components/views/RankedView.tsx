@@ -107,9 +107,10 @@ export function RankedView() {
   }, [phase, match, setActiveRankedMatch]);
 
   // Listen for forfeit-by-navigation events (from AppShell when user
-  // confirms abandon via the navigation interception modal)
+  // confirms abandon via the navigation interception modal).
+  // handleFinishRef is kept in sync on each render (below) so this
+  // effect only needs to run once.
   const handleFinishRef = useRef<(abandon?: boolean) => void>(() => {});
-  handleFinishRef.current = handleFinish;
   useEffect(() => {
     const handler = () => {
       handleFinishRef.current(true);
@@ -454,6 +455,12 @@ export function RankedView() {
     setShowAbandonModal(false);
     await handleFinish(true);
   };
+
+  // Keep handleFinishRef in sync via effect (ref assignment in render
+  // is flagged by react-hooks/refs rule).
+  useEffect(() => {
+    handleFinishRef.current = handleFinish;
+  });
 
   if (isGuest) {
     return <GuestLoginRequired featureName={locale === "pt-BR" ? "Ranked — Competitivo" : "Ranked — Competitive"} />;
