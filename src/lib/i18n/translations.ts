@@ -331,6 +331,8 @@ const translations = {
     "ranked.needsBackend": "Partidas ranqueadas exigem matchmaking e validação no servidor. Esta tela está preparada para a próxima fase.",
     "ranked.yourRating": "Seu rating",
     "ranked.yourDivision": "Sua divisão",
+    "ranked.abandonWarning": "Sair da partida contará como abandono e aplicará uma penalidade maior de rating (-50 pontos extras). O oponente será declarado vencedor.",
+    "ranked.forfeit": "Abandonar",
 
     // Achievements
     "achievements.title": "Conquistas",
@@ -746,6 +748,8 @@ const translations = {
     "ranked.needsBackend": "Ranked matches require matchmaking and server-side validation. This screen is prepared for the next phase.",
     "ranked.yourRating": "Your rating",
     "ranked.yourDivision": "Your division",
+    "ranked.abandonWarning": "Leaving the match counts as a forfeit and applies a larger rating penalty (-50 extra points). Your opponent will be declared the winner.",
+    "ranked.forfeit": "Forfeit",
 
     // Achievements
     "achievements.title": "Achievements",

@@ -4,7 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useAppStore } from "@/lib/store/app-store";
 import { useI18n } from "@/lib/i18n/context";
 import { NAV_GROUPS, NAV_ITEMS } from "./nav-config";
-import { Grid3x3, Menu, X, Sun, Moon, Globe, Wifi, WifiOff, Volume2, VolumeX, Cloud } from "lucide-react";
+import { Grid3x3, Menu, X, Sun, Moon, Globe, Wifi, WifiOff, Volume2, VolumeX, Cloud, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
@@ -127,7 +127,21 @@ function LanguageMenu() {
 function NavList({ onNavigate }: { onNavigate?: () => void }) {
   const route = useAppStore((s) => s.route);
   const setRoute = useAppStore((s) => s.setRoute);
+  const activeRankedMatchId = useAppStore((s) => s.activeRankedMatchId);
   const { t } = useI18n();
+
+  // Intercept navigation when a ranked match is active — show abandon modal
+  const handleNavClick = (itemId: string) => {
+    if (activeRankedMatchId && itemId !== "ranked") {
+      // Dispatch a custom event that AppShell listens to, to show the
+      // abandon confirmation modal. The navigation is deferred until
+      // the user confirms.
+      window.dispatchEvent(new CustomEvent("ranked-abandon-attempt", { detail: { targetRoute: itemId } }));
+      return;
+    }
+    setRoute(itemId);
+    onNavigate?.();
+  };
 
   return (
     <nav className="space-y-5">
@@ -147,7 +161,7 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
                   <li key={item.id}>
                     <button
                       onClick={() => {
-                        setRoute(item.id);
+                        handleNavClick(item.id);
                         onNavigate?.();
                       }}
                       className={cn(
@@ -208,11 +222,37 @@ export function AppShell({ children }: { children: ReactNode }) {
   // without being covered by the full-screen AuthDialog (z-[200]).
   const { user: authUser, loading: authLoading, isGuest } = useAuth();
   const onboardingCompleted = useAppStore((s) => s.onboarding.completed);
+  const [pendingNav, setPendingNav] = useState<string | null>(null);
+  const activeRankedMatchId = useAppStore((s) => s.activeRankedMatchId);
+  const setActiveRankedMatch = useAppStore((s) => s.setActiveRankedMatch);
+
+  // Listen for navigation attempts during an active ranked match.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.targetRoute) {
+        setPendingNav(detail.targetRoute);
+      }
+    };
+    window.addEventListener("ranked-abandon-attempt", handler);
+    return () => window.removeEventListener("ranked-abandon-attempt", handler);
+  }, []);
+
+  const confirmAbandonNav = async () => {
+    // Finish the match as abandoned via the RankedView's finishRankedMatch.
+    window.dispatchEvent(new CustomEvent("ranked-forfeit-confirm"));
+    setActiveRankedMatch(null);
+    if (pendingNav) {
+      setRoute(pendingNav);
+      setMobileOpen(false);
+    }
+    setPendingNav(null);
+  };
+
   if (!authUser && !authLoading && !isGuest && onboardingCompleted) {
     return <AuthDialog />;
   }
   // While onboarding is pending OR auth is loading, show a minimal loader.
-  // The OnboardingDialog (from Providers) renders on top of this.
   if (!authUser && !isGuest && (!onboardingCompleted || authLoading)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -222,7 +262,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   // Google OAuth users who don't have a username yet must complete signup
-  // before accessing the lobby. This blocks all routes until done.
   if (authUser && !authUser.username && !isGuest) {
     return <GoogleSignupCompletion />;
   }
@@ -303,6 +342,35 @@ export function AppShell({ children }: { children: ReactNode }) {
           <p>Sudoku Arena · v1.0.0</p>
         </div>
       </footer>
+
+      {/* Navigation abandon modal — shown when user tries to leave a ranked match */}
+      {pendingNav && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-background/80 backdrop-blur-sm"
+          onClick={() => setPendingNav(null)}>
+          <div className="relative w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-2xl animate-float-up"
+            onClick={(e) => e.stopPropagation()}>
+            <div className="flex flex-col items-center text-center">
+              <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--destructive)]/10">
+                <AlertTriangle className="h-7 w-7 text-[var(--destructive)]" />
+              </div>
+              <h3 className="text-lg font-bold">
+                {t("nav.ranked") as string}?
+              </h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {t("ranked.abandonWarning") as string}
+              </p>
+              <div className="mt-5 flex w-full gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setPendingNav(null)}>
+                  {t("common.cancel") as string}
+                </Button>
+                <Button variant="destructive" className="flex-1" onClick={confirmAbandonNav}>
+                  {t("ranked.forfeit") as string}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
