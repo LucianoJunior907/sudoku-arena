@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/lib/supabase/auth";
 import { AuthDialog } from "@/components/layout/AuthDialog";
+import { GoogleSignupCompletion } from "@/components/layout/GoogleSignupCompletion";
 import { Loader2 } from "lucide-react";
 import {
   DropdownMenu,
@@ -218,6 +219,12 @@ export function AppShell({ children }: { children: ReactNode }) {
         {authLoading && <Loader2 className="h-8 w-8 animate-spin text-primary" />}
       </div>
     );
+  }
+
+  // Google OAuth users who don't have a username yet must complete signup
+  // before accessing the lobby. This blocks all routes until done.
+  if (authUser && !authUser.username && !isGuest) {
+    return <GoogleSignupCompletion />;
   }
 
   // Show loading spinner while checking auth

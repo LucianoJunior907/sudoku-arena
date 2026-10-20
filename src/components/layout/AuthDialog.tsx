@@ -74,9 +74,23 @@ export function AuthDialog() {
         setBusy(false);
         return;
       }
+      // Validate password strength (8+ chars, upper, lower, number, special)
+      const pwdErr = validatePasswordStrength(password, locale);
+      if (pwdErr) {
+        toast.error(pwdErr);
+        setBusy(false);
+        return;
+      }
       // Validate password confirmation
       if (password !== confirmPassword) {
         toast.error(locale === "pt-BR" ? "As senhas não coincidem." : "Passwords do not match.");
+        setBusy(false);
+        return;
+      }
+      // Validate password strength (8+ chars, upper, lower, number, special)
+      const pwdErr = validatePasswordStrength(password, locale);
+      if (pwdErr) {
+        toast.error(pwdErr);
         setBusy(false);
         return;
       }
@@ -89,7 +103,7 @@ export function AuthDialog() {
         return;
       }
 
-      const { data: signUpData, error } = await signUpWithEmail(email, password, name || username, username);
+      const { data: signUpData, error } = await signUpWithEmail(email, password, username, username);
       if (error) {
         // Map known Supabase errors to generic, safe messages.
         // We never reveal whether an email is already registered
@@ -352,21 +366,8 @@ export function AuthDialog() {
                 </div>
               </div>
             ) : (
-              /* Signup fields */
+              /* Signup fields — username, email, password, confirm (NO personal name) */
               <>
-                <div className="space-y-1.5">
-                  <Label htmlFor="name">{locale === "pt-BR" ? "Nome" : "Name"}</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      id="name"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder={locale === "pt-BR" ? "Seu nome" : "Your name"}
-                      className="pl-9"
-                    />
-                  </div>
-                </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="username">
                     {locale === "pt-BR" ? "Nome de usuário" : "Username"}
@@ -756,4 +757,26 @@ function generateGridCells(): GridCell[] {
     phase: (["hidden", "hidden", "hidden", "in"] as const)[Math.floor(Math.random() * 4)],
     holdTime: Math.floor(Math.random() * 40) + 10,
   }));
+}
+
+// ---- Password strength validation ----
+// Requirements: 8+ chars, 1 uppercase, 1 lowercase, 1 number, 1 special char.
+// Returns an error message (localized) or null if valid.
+function validatePasswordStrength(password: string, locale: string): string | null {
+  if (password.length < 8) {
+    return locale === "pt-BR" ? "A senha deve ter pelo menos 8 caracteres." : "Password must be at least 8 characters.";
+  }
+  if (!/[A-Z]/.test(password)) {
+    return locale === "pt-BR" ? "A senha deve conter pelo menos uma letra maiúscula." : "Password must contain at least one uppercase letter.";
+  }
+  if (!/[a-z]/.test(password)) {
+    return locale === "pt-BR" ? "A senha deve conter pelo menos uma letra minúscula." : "Password must contain at least one lowercase letter.";
+  }
+  if (!/[0-9]/.test(password)) {
+    return locale === "pt-BR" ? "A senha deve conter pelo menos um número." : "Password must contain at least one number.";
+  }
+  if (!/[^A-Za-z0-9]/.test(password)) {
+    return locale === "pt-BR" ? "A senha deve conter pelo menos um caractere especial." : "Password must contain at least one special character.";
+  }
+  return null;
 }
