@@ -255,6 +255,23 @@
 .animate-confetti { animation: sa-confetti-fall linear forwards; }
 .animate-float-up { animation: sa-float-up 0.4s ease-out both; }
 
+/* Ranked result + promotion animations */
+@keyframes sa-fade-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+@keyframes sa-pulse-slow {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.05); }
+}
+@keyframes sa-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-fade-in { animation: sa-fade-in 1s ease-out both; }
+.animate-pulse-slow { animation: sa-pulse-slow 2s ease-in-out infinite; }
+.animate-spin-slow { animation: sa-spin 2s ease-out; }
+
 .shimmer {
   background: linear-gradient(
     90deg,
