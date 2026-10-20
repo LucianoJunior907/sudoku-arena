@@ -2150,3 +2150,31 @@ Stage Summary:
 - All code pushed (commit 70cf518). Build passes. Lint clean.
 - SQL file supabase-ranked-overhaul.sql MUST be run by user in Supabase SQL Editor.
 - Pending: E2E test of ranked matchmaking (needs 2 players), Google OAuth completion (needs Google account), mobile real device test.
+
+---
+Task ID: ranked-e2e-verification
+Agent: main
+Task: Verify ranked flow works after user ran supabase-ranked-overhaul.sql.
+
+Work Log:
+- Restored .env (sandbox wiped Supabase keys again).
+- Tested RPC availability: try_matchmake_atomic exists and responds correctly ("Not authenticated" for anon — expected, confirms RPC was created).
+- Found and fixed RankedView crash: handleFinishRef.current = handleFinish was assigned BEFORE handleFinish was defined (Temporal Dead Zone with const). This caused a ReferenceError at render time → "Application error" on Vercel.
+- Fix: moved the useEffect (event listener) with other hooks before early returns; sync handleFinishRef.current via useEffect (not during render) to satisfy react-hooks/refs rule.
+- Also added null-safety for profile.rating/displayName/avatarSeed (Zustand store may not be hydrated on first render).
+
+E2E Test Results (Vercel production — commit 43f5837):
+1. ✅ Signup creates account, enters lobby
+2. ✅ Navigate to Ranked — NO "Application error" (was crashing before)
+3. ✅ Ranked lobby shows: title, rating card, division list, "Join queue" button
+4. ✅ Click "Join queue" → enters queue ("Procurando oponente...")
+5. ✅ Heartbeat keeps entry alive (still in queue after 5s)
+6. ✅ Click "Cancel" → returns to lobby
+7. ✅ ranked_queue table is EMPTY after cancel (no ghost entries)
+8. ✅ try_matchmake_atomic RPC exists and responds correctly
+
+Stage Summary:
+- Ranked lobby + queue + cancel all work on Vercel production.
+- No ghost players — queue entries are properly removed on cancel.
+- Heartbeat mechanism is functional (entry stays alive while in queue).
+- Matchmaking E2E (2 players) still untested — needs a second account online simultaneously.
