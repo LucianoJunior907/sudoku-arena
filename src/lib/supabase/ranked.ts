@@ -12,12 +12,17 @@ export interface RankedMatch {
   boardSeed: string;
   status: "active" | "completed" | "abandoned";
   winnerId: string | null;
+  finishReason: "solved" | "errors" | "abandon" | "opponent_abandon" | null;
   player1Progress: number;
   player2Progress: number;
   player1Errors: number;
   player2Errors: number;
   player1CellsCorrect: number;
   player2CellsCorrect: number;
+  player1RatingBefore: number;
+  player1RatingAfter: number;
+  player2RatingBefore: number;
+  player2RatingAfter: number;
   startedAt: string;
   endedAt: string | null;
 }
@@ -29,23 +34,40 @@ export interface MatchmakingResult {
   puzzle: { puzzle: number[]; solution: number[] } | null;
 }
 
+export interface FinishResult {
+  alreadyFinished: boolean;
+  winnerId: string | null;
+  ratingBefore: number;
+  ratingAfter: number;
+  ratingChange: number;
+  reason: string | null;
+  error?: string;
+}
+
 /**
- * Join the ranked queue. Polls for a match.
- * Returns when an opponent is found and a match is created.
+ * Join the ranked queue. Creates/refreshes the user's queue entry.
  */
 export async function joinRankedQueue(
   userId: string,
   difficulty: Difficulty
 ): Promise<{ error: string | null }> {
-  // Remove any existing queue entry for this user
+  // Upsert: remove existing entry then insert fresh (with heartbeat)
   await supabase.from("ranked_queue").delete().eq("user_id", userId);
-
-  // Insert into queue
   const { error } = await supabase.from("ranked_queue").insert({
     user_id: userId,
     difficulty,
+    last_heartbeat: new Date().toISOString(),
   });
   return { error: error?.message ?? null };
+}
+
+/**
+ * Heartbeat — call every 10s while in queue. Keeps the entry alive.
+ * Entries without heartbeat for >30s are considered offline and
+ * ignored by the matchmaker (and cleaned up).
+ */
+export async function heartbeatQueue(): Promise<void> {
+  await supabase.rpc("heartbeat_ranked_queue");
 }
 
 /**
@@ -56,79 +78,43 @@ export async function leaveRankedQueue(userId: string): Promise<void> {
 }
 
 /**
- * Try to find a match. Called periodically while in queue.
- * If another player is in the queue, creates a match and removes both from queue.
+ * Try to matchmake ATOMICALLY on the server.
+ * The server:
+ *   - Cleans expired entries
+ *   - Finds an eligible opponent (online, no active match)
+ *   - Creates the match
+ *   - Removes both from queue
+ * Returns { matchId, boardSeed } on success.
  */
 export async function tryMatchmake(
-  userId: string,
   difficulty: Difficulty
-): Promise<{ matchId: string | null; error: string | null }> {
-  // Find another player in the queue (not us)
-  const { data: opponents, error: qError } = await supabase
-    .from("ranked_queue")
-    .select("user_id")
-    .neq("user_id", userId)
-    .eq("difficulty", difficulty)
-    .order("joined_at", { ascending: true })
-    .limit(1);
-
-  if (qError || !opponents || opponents.length === 0) {
-    return { matchId: null, error: null };
-  }
-
-  const opponentId = opponents[0].user_id;
-
-  // Generate a shared board seed
-  const seed = `ranked-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  const p = generatePuzzle(difficulty, seed);
-
-  // Create the match (player1 = us, player2 = opponent)
-  // Use .maybeSingle() — if RLS blocks the insert, .single() would throw
-  // an additional 406 on top of the 403, masking the real error.
-  const { data: match, error: mError } = await supabase
-    .from("ranked_matches")
-    .insert({
-      player1_id: userId,
-      player2_id: opponentId,
-      difficulty,
-      board_seed: seed,
-      status: "active",
-    })
-    .select()
-    .maybeSingle();
-
-  if (mError || !match) {
-    return { matchId: null, error: mError?.message ?? "Failed to create match" };
-  }
-
-  // Remove both players from queue
-  await supabase.from("ranked_queue").delete().in("user_id", [userId, opponentId]);
-
-  return { matchId: match.id, error: null };
+): Promise<{ matchId: string | null; boardSeed: string | null; error: string | null }> {
+  const { data, error } = await supabase.rpc("try_matchmake_atomic", {
+    p_difficulty: difficulty,
+  });
+  if (error) return { matchId: null, boardSeed: null, error: error.message };
+  const result = data as Record<string, unknown>;
+  const matchId = result.match_id as string | null;
+  const boardSeed = result.board_seed as string | null;
+  return { matchId, boardSeed, error: null };
 }
 
 /**
- * Check if a match was created for us (we're player2).
+ * Check if we were paired by another player.
+ * Returns { matchId, boardSeed } if an active match exists for us.
  */
-export async function checkForMatch(userId: string): Promise<string | null> {
-  // Use .maybeSingle() instead of .single() — when no match exists (normal
-  // state while waiting in queue), .single() throws HTTP 406 "Not Acceptable".
-  // .maybeSingle() returns null gracefully instead.
-  const { data, error } = await supabase
-    .from("ranked_matches")
-    .select("id")
-    .or(`player1_id.eq.${userId},player2_id.eq.${userId}`)
-    .eq("status", "active")
-    .order("started_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error || !data) return null;
-  return data.id;
+export async function checkForMatch(): Promise<{ matchId: string | null; boardSeed: string | null }> {
+  const { data, error } = await supabase.rpc("check_my_ranked_match");
+  if (error) return { matchId: null, boardSeed: null };
+  const result = data as Record<string, unknown>;
+  return {
+    matchId: result.match_id as string | null,
+    boardSeed: result.board_seed as string | null,
+  };
 }
 
 /**
- * Fetch a ranked match by ID.
+ * Fetch a ranked match by ID. Uses maybeSingle (no 406 on empty).
  */
 export async function fetchRankedMatch(matchId: string): Promise<RankedMatch | null> {
   const { data, error } = await supabase
@@ -136,87 +122,69 @@ export async function fetchRankedMatch(matchId: string): Promise<RankedMatch | n
     .select("*")
     .eq("id", matchId)
     .maybeSingle();
-
   if (error || !data) return null;
-
-  return {
-    id: data.id,
-    player1Id: data.player1_id,
-    player2Id: data.player2_id,
-    difficulty: data.difficulty,
-    boardSeed: data.board_seed,
-    status: data.status,
-    winnerId: data.winner_id,
-    player1Progress: data.player1_progress,
-    player2Progress: data.player2_progress,
-    player1Errors: data.player1_errors,
-    player2Errors: data.player2_errors,
-    player1CellsCorrect: data.player1_cells_correct,
-    player2CellsCorrect: data.player2_cells_correct,
-    startedAt: data.started_at,
-    endedAt: data.ended_at,
-  };
+  return mapRankedMatch(data);
 }
 
 /**
- * Update the player's progress in a ranked match.
+ * Update progress on the server. The RPC verifies the caller only
+ * updates their own fields.
  */
 export async function updateRankedProgress(
   matchId: string,
-  userId: string,
-  isPlayer1: boolean,
-  data: {
-    progress: number;
-    errors: number;
-    cellsCorrect: number;
-  }
+  progress: number,
+  errors: number,
+  cellsCorrect: number
 ): Promise<void> {
-  const updates: Record<string, number> = {};
-  if (isPlayer1) {
-    updates.player1_progress = data.progress;
-    updates.player1_errors = data.errors;
-    updates.player1_cells_correct = data.cellsCorrect;
-  } else {
-    updates.player2_progress = data.progress;
-    updates.player2_errors = data.errors;
-    updates.player2_cells_correct = data.cellsCorrect;
-  }
-
-  await supabase.from("ranked_matches").update(updates).eq("id", matchId);
+  await supabase.rpc("update_ranked_progress", {
+    p_match_id: matchId,
+    p_progress: progress,
+    p_errors: errors,
+    p_cells_correct: cellsCorrect,
+  });
 }
 
 /**
- * Report a win (this player completed the board).
+ * FINISH a match — server-authoritative.
+ * Sends the full solution array; the server validates it and
+ * determines the winner atomically. Rating is calculated and
+ * persisted on the server. Idempotent (calling twice returns the
+ * existing result without applying changes).
+ *
+ * This is the ONLY way to legitimately finish a match. The old
+ * client-side reportRankedWin is removed.
  */
-export async function reportRankedWin(
+export async function finishRankedMatch(
   matchId: string,
-  winnerId: string
-): Promise<void> {
-  await supabase
-    .from("ranked_matches")
-    .update({
-      status: "completed",
-      winner_id: winnerId,
-      ended_at: new Date().toISOString(),
-    })
-    .eq("id", matchId);
-}
-
-/**
- * Report a loss (this player exceeded the error limit).
- */
-export async function reportRankedLoss(
-  matchId: string,
-  winnerId: string
-): Promise<void> {
-  await supabase
-    .from("ranked_matches")
-    .update({
-      status: "completed",
-      winner_id: winnerId,
-      ended_at: new Date().toISOString(),
-    })
-    .eq("id", matchId);
+  solution: number[],
+  abandon = false
+): Promise<FinishResult> {
+  const { data, error } = await supabase.rpc("finish_ranked_match", {
+    p_match_id: matchId,
+    p_solution: solution,
+    p_abandon: abandon,
+  });
+  if (error) {
+    return {
+      alreadyFinished: false,
+      winnerId: null,
+      ratingBefore: 0,
+      ratingAfter: 0,
+      ratingChange: 0,
+      reason: null,
+      error: error.message,
+    };
+  }
+  const r = data as Record<string, unknown>;
+  return {
+    alreadyFinished: (r.already_finished as boolean) ?? false,
+    winnerId: (r.winner_id as string) ?? null,
+    ratingBefore: (r.rating_before as number) ?? 0,
+    ratingAfter: (r.rating_after as number) ?? 0,
+    ratingChange: (r.rating_change as number) ?? 0,
+    reason: (r.reason as string) ?? null,
+    error: (r.error as string) ?? undefined,
+  };
 }
 
 /**
@@ -237,28 +205,11 @@ export function subscribeToRankedMatch(
         filter: `id=eq.${matchId}`,
       },
       async (payload) => {
-        const data = payload.new as Record<string, unknown>;
-        onUpdate({
-          id: data.id as string,
-          player1Id: data.player1_id as string,
-          player2Id: data.player2_id as string,
-          difficulty: data.difficulty as Difficulty,
-          boardSeed: data.board_seed as string,
-          status: data.status as RankedMatch["status"],
-          winnerId: (data.winner_id as string) ?? null,
-          player1Progress: data.player1_progress as number,
-          player2Progress: data.player2_progress as number,
-          player1Errors: data.player1_errors as number,
-          player2Errors: data.player2_errors as number,
-          player1CellsCorrect: data.player1_cells_correct as number,
-          player2CellsCorrect: data.player2_cells_correct as number,
-          startedAt: data.started_at as string,
-          endedAt: (data.ended_at as string) ?? null,
-        });
+        const m = mapRankedMatch(payload.new as Record<string, unknown>);
+        onUpdate(m);
       }
     )
     .subscribe();
-
   return () => {
     supabase.removeChannel(channel);
   };
@@ -270,23 +221,37 @@ export function subscribeToRankedMatch(
 export async function fetchOpponentName(opponentId: string): Promise<string> {
   const { data, error } = await supabase
     .from("profiles")
-    .select("display_name")
+    .select("display_name, username")
     .eq("id", opponentId)
     .maybeSingle();
-
   if (error || !data) return "Opponent";
-  return data.display_name;
+  const p = data as Record<string, unknown>;
+  return (p.username as string) || (p.display_name as string) || "Opponent";
 }
 
-/**
- * Update the user's rating in their profile.
- */
-export async function updateRating(
-  userId: string,
-  newRating: number
-): Promise<void> {
-  await supabase
-    .from("profiles")
-    .update({ rating: newRating, updated_at: new Date().toISOString() })
-    .eq("id", userId);
+// ---- helpers ----
+
+function mapRankedMatch(d: Record<string, unknown>): RankedMatch {
+  return {
+    id: d.id as string,
+    player1Id: d.player1_id as string,
+    player2Id: d.player2_id as string,
+    difficulty: d.difficulty as Difficulty,
+    boardSeed: d.board_seed as string,
+    status: d.status as RankedMatch["status"],
+    winnerId: (d.winner_id as string) ?? null,
+    finishReason: (d.finish_reason as RankedMatch["finishReason"]) ?? null,
+    player1Progress: (d.player1_progress as number) ?? 0,
+    player2Progress: (d.player2_progress as number) ?? 0,
+    player1Errors: (d.player1_errors as number) ?? 0,
+    player2Errors: (d.player2_errors as number) ?? 0,
+    player1CellsCorrect: (d.player1_cells_correct as number) ?? 0,
+    player2CellsCorrect: (d.player2_cells_correct as number) ?? 0,
+    player1RatingBefore: (d.player1_rating_before as number) ?? 0,
+    player1RatingAfter: (d.player1_rating_after as number) ?? 0,
+    player2RatingBefore: (d.player2_rating_before as number) ?? 0,
+    player2RatingAfter: (d.player2_rating_after as number) ?? 0,
+    startedAt: d.started_at as string,
+    endedAt: (d.ended_at as string) ?? null,
+  };
 }
