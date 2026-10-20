@@ -28,17 +28,20 @@ async function buildAuthUser(u: User): Promise<AuthUser> {
     id: u.id,
     email: u.email ?? "",
     displayName: (u.user_metadata?.display_name as string) ?? "Player",
-    username: null,
+    // Fallback to user_metadata.username if the profile doesn't have it yet
+    // (race condition: onAuthStateChange fires before setUsername RPC completes)
+    username: (u.user_metadata?.username as string | null) ?? null,
   };
   const { data: profile } = await supabase
     .from("profiles")
     .select("username, display_name")
     .eq("id", u.id)
-    .single();
+    .maybeSingle();
   if (profile) {
     const p = profile as Record<string, unknown>;
-    authUser.username = (p.username as string | null) ?? null;
-    authUser.displayName = (p.display_name as string) ?? authUser.displayName;
+    // Profile takes precedence over user_metadata
+    if (p.username) authUser.username = p.username as string | null;
+    if (p.display_name) authUser.displayName = p.display_name as string;
   }
   return authUser;
 }
