@@ -2205,3 +2205,37 @@ Stage Summary:
 - Login fields are now IMMEDIATELY clickable after onboarding — no need to click guest mode first.
 - Tour still shows normally after login (authenticated state) if not yet seen.
 - All login/signup/reset interactions work without the guest-mode workaround.
+
+---
+Task ID: unify-username
+Agent: main
+Task: Remove '@' prefix and 'Player' fallback — single username identity everywhere.
+
+Work Log:
+- Root cause: the system had TWO names per user (username + display_name). display_name defaulted to "Player" via the handle_new_user trigger, and was used in many places instead of username. Login/signup fields also had "@" prefix in placeholders.
+- auth.tsx (buildAuthUser): displayName now ALWAYS mirrors username. No separate identity. Fallback chain: user_metadata.username → user_metadata.display_name (legacy) → ''. Never returns 'Player'.
+- auth.tsx (signUpWithEmail): stores username as BOTH user_metadata.username AND user_metadata.display_name so the trigger creates the profile with the correct name.
+- AuthDialog: removed '@' from login placeholder ('usuario ou email'). Replaced AtSign icon with User icon for login and signup fields.
+- FriendsView: removed '@' from search placeholder.
+- matches.ts: new resolveName() helper — prefers username, falls back to display_name only if not 'Player'. All leaderboard/friends/search functions use it.
+- DuoView: refreshParticipants uses the same resolveName logic.
+- RankedView: removed 'Player' fallback.
+- ProfileView: save() no longer defaults to 'Player'.
+- app-store: defaultProfile.displayName = '' (was 'Player').
+- supabase-unify-username.sql (NEW): updates handle_new_user trigger to set username=display_name from user_metadata.username (or email prefix). Migrates existing profiles.
+
+E2E Test Results (Vercel production — commit 2a1c6ef):
+1. ✅ Login placeholder: "usuario ou email" (no @)
+2. ✅ Signup username placeholder: "username" (no @)
+3. ✅ Friends search placeholder: "nome_de_usuario" (no @)
+4. ✅ Created account "unify8077" — header shows "unify8077" (NOT "Player")
+5. ✅ Ranked view: shows "unify8077"
+6. ✅ Profile view: shows "unify8077"
+7. ✅ Leaderboard: shows "unify8077"
+8. ✅ No "Player" anywhere in the UI
+
+Stage Summary:
+- There is now ONE name per user — the username. It appears identically in login, signup, lobby, leaderboard, ranked, duo, friends, profile.
+- No '@' prefix in any placeholder.
+- No 'Player' fallback anywhere.
+- User MUST run supabase-unify-username.sql to migrate existing profiles and update the trigger.
