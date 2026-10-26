@@ -161,7 +161,7 @@ function emptyStats(): StatsByMode {
 
 function defaultProfile(): LocalProfile {
   return {
-    displayName: "Player",
+    displayName: "",
     avatarSeed: "arena-" + Math.random().toString(36).slice(2, 8),
     titleId: null,
     frameId: "frame-default",

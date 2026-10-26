@@ -347,12 +347,12 @@ export function AuthDialog() {
                   {locale === "pt-BR" ? "Nome de usuário ou email" : "Username or email"}
                 </Label>
                 <div className="relative">
-                  <AtSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="loginId"
                     value={loginIdentifier}
                     onChange={(e) => setLoginIdentifier(e.target.value)}
-                    placeholder={locale === "pt-BR" ? "@usuario ou email" : "@username or email"}
+                    placeholder={locale === "pt-BR" ? "usuario ou email" : "username or email"}
                     className="pl-9"
                     required
                   />
@@ -366,7 +366,7 @@ export function AuthDialog() {
                     {locale === "pt-BR" ? "Nome de usuário" : "Username"}
                   </Label>
                   <div className="relative">
-                    <AtSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       id="username"
                       value={username}

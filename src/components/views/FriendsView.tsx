@@ -174,7 +174,7 @@ export function FriendsView() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") handleSearch(); }}
-            placeholder={locale === "pt-BR" ? "@nome_de_usuario" : "@username"}
+            placeholder={locale === "pt-BR" ? "nome_de_usuario" : "username"}
             className="flex-1"
           />
           <Button onClick={handleSearch} disabled={searching || !searchQuery.trim()}>

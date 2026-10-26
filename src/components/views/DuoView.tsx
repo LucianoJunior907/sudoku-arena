@@ -46,13 +46,19 @@ export function DuoView() {
   const refreshParticipants = useCallback(async (rId: string) => {
     const data = await fetchRoomParticipants(rId);
     setParticipants(
-      data.map((p: Record<string, unknown>) => ({
-        user_id: p.user_id as string,
-        team: p.team as number,
-        seat: p.seat as number,
-        display_name: (p.profiles as Record<string, unknown>)?.display_name as string ?? "Player",
-        avatar_seed: (p.profiles as Record<string, unknown>)?.avatar_seed as string ?? "default",
-      }))
+      data.map((p: Record<string, unknown>) => {
+        const prof = (p.profiles as Record<string, unknown>) ?? {};
+        const uname = (prof.username as string | null) ?? null;
+        const dname = (prof.display_name as string | null) ?? null;
+        const name = (uname && uname.trim()) ? uname : ((dname && dname.trim() && dname !== "Player") ? dname : "");
+        return {
+          user_id: p.user_id as string,
+          team: p.team as number,
+          seat: p.seat as number,
+          display_name: name,
+          avatar_seed: (prof.avatar_seed as string) ?? "default",
+        };
+      })
     );
   }, []);
 

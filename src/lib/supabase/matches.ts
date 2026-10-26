@@ -23,6 +23,20 @@ export interface FriendEntry {
 }
 
 /**
+ * Resolve the single public name for a user. The username IS the
+ * identity — there is no separate display name. We fall back to
+ * display_name only for legacy accounts that may not have a username
+ * yet, and never return "Player" as a placeholder.
+ */
+function resolveName(p: Record<string, unknown>): string {
+  const uname = (p.username as string | null) ?? null;
+  if (uname && uname.trim()) return uname;
+  const dname = (p.display_name as string | null) ?? null;
+  if (dname && dname.trim() && dname !== "Player") return dname;
+  return "";
+}
+
+/**
  * Fetch the global leaderboard from Supabase.
  * Returns top N players ordered by rating (descending).
  */
@@ -35,15 +49,18 @@ export async function fetchGlobalLeaderboard(limit = 50): Promise<LeaderboardEnt
 
   if (error || !data) return [];
 
-  return (data as Record<string, unknown>[]).map((p) => ({
-    userId: p.id as string,
-    displayName: (p.display_name as string) ?? "Player",
-    avatarSeed: (p.avatar_seed as string) ?? "default",
-    username: (p.username as string) ?? "",
-    rating: (p.rating as number) ?? 0,
-    level: (p.level as number) ?? 1,
-    totalXp: (p.total_xp as number) ?? 0,
-  }));
+  return (data as Record<string, unknown>[]).map((p) => {
+    const name = resolveName(p);
+    return {
+      userId: p.id as string,
+      displayName: name,
+      avatarSeed: (p.avatar_seed as string) ?? "default",
+      username: name,
+      rating: (p.rating as number) ?? 0,
+      level: (p.level as number) ?? 1,
+      totalXp: (p.total_xp as number) ?? 0,
+    };
+  });
 }
 
 /**
@@ -220,8 +237,8 @@ export async function searchUserByUsername(username: string): Promise<{
     found: true,
     user: {
       id: user.id as string,
-      displayName: (user.display_name as string) ?? "Player",
-      username: (user.username as string) ?? "",
+      displayName: resolveName(user),
+      username: (user.username as string) ?? resolveName(user),
       avatarSeed: (user.avatar_seed as string) ?? "default",
       rating: (user.rating as number) ?? 0,
     },
@@ -283,7 +300,7 @@ export async function fetchFriends(userId: string): Promise<FriendEntry[]> {
     const profile = profileMap.get(f.friend_id as string) ?? {};
     return {
       userId: f.friend_id as string,
-      displayName: (profile.display_name as string) ?? "Player",
+      displayName: resolveName(profile),
       avatarSeed: (profile.avatar_seed as string) ?? "default",
       status: f.status as string,
       rating: (profile.rating as number) ?? 0,
@@ -318,7 +335,7 @@ export async function fetchPendingRequests(userId: string): Promise<FriendEntry[
     const profile = profileMap.get(r.user_id as string) ?? {};
     return {
       userId: r.user_id as string,
-      displayName: (profile.display_name as string) ?? "Player",
+      displayName: resolveName(profile),
       avatarSeed: (profile.avatar_seed as string) ?? "default",
       status: r.status as string,
       rating: (profile.rating as number) ?? 0,
@@ -353,7 +370,7 @@ export async function fetchSentRequests(userId: string): Promise<FriendEntry[]> 
     const profile = profileMap.get(r.friend_id as string) ?? {};
     return {
       userId: r.friend_id as string,
-      displayName: (profile.display_name as string) ?? "Player",
+      displayName: resolveName(profile),
       avatarSeed: (profile.avatar_seed as string) ?? "default",
       status: r.status as string,
       rating: (profile.rating as number) ?? 0,

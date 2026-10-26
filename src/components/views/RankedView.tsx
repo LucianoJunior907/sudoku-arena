@@ -549,7 +549,7 @@ export function RankedView() {
               <div className="flex items-center gap-2">
                 <Avatar seed={profile?.avatarSeed ?? 'default'} size={32} className="rounded-md" />
                 <div>
-                  <p className="text-xs font-semibold">{profile?.displayName ?? user?.displayName ?? 'Player'}</p>
+                  <p className="text-xs font-semibold">{profile?.displayName || user?.displayName || user?.username || ''}</p>
                   <p className="text-[10px] text-muted-foreground">{myProgress}% · {errors}/3</p>
                 </div>
               </div>

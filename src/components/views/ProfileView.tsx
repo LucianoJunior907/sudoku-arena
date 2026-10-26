@@ -58,7 +58,7 @@ export function ProfileView() {
 
   const save = () => {
     updateProfile({
-      displayName: editName.trim() || "Player",
+      displayName: editName.trim(),
       avatarSeed: editSeed,
     });
     setEditOpen(false);

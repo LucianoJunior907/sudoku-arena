@@ -24,13 +24,18 @@ const GUEST_USER: AuthUser = {
  * profile data (username, display_name) fetched from the profiles table.
  */
 async function buildAuthUser(u: User): Promise<AuthUser> {
+  // The username IS the public identity. displayName always mirrors username.
+  // We no longer use a separate display_name — there is only ONE name.
+  const fallbackUsername =
+    (u.user_metadata?.username as string | null) ??
+    (u.user_metadata?.display_name as string | null) ??
+    null;
+
   const authUser: AuthUser = {
     id: u.id,
     email: u.email ?? "",
-    displayName: (u.user_metadata?.display_name as string) ?? "Player",
-    // Fallback to user_metadata.username if the profile doesn't have it yet
-    // (race condition: onAuthStateChange fires before setUsername RPC completes)
-    username: (u.user_metadata?.username as string | null) ?? null,
+    displayName: fallbackUsername ?? "",
+    username: fallbackUsername,
   };
   const { data: profile } = await supabase
     .from("profiles")
@@ -39,9 +44,18 @@ async function buildAuthUser(u: User): Promise<AuthUser> {
     .maybeSingle();
   if (profile) {
     const p = profile as Record<string, unknown>;
-    // Profile takes precedence over user_metadata
-    if (p.username) authUser.username = p.username as string | null;
-    if (p.display_name) authUser.displayName = p.display_name as string;
+    // Profile's username is authoritative. display_name column is kept in
+    // sync with username by the app, but we prefer username.
+    const uname = (p.username as string | null) ?? null;
+    if (uname) {
+      authUser.username = uname;
+      authUser.displayName = uname;
+    } else if (p.display_name) {
+      // Legacy: some old accounts may have display_name but no username.
+      // Use it as the username for display purposes.
+      authUser.username = p.display_name as string;
+      authUser.displayName = p.display_name as string;
+    }
   }
   return authUser;
 }
@@ -206,16 +220,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error as Error | null };
   }, []);
 
-  // Sign up with email + password. display_name and username are passed
-  // as user_metadata so the handle_new_user trigger / set_username RPC
-  // can pick them up. emailRedirectTo ensures the confirmation email
-  // (if enabled) points back to the app.
-  const signUpWithEmail = useCallback(async (email: string, password: string, displayName: string, username: string) => {
+  // Sign up with email + password. The username IS the single public
+  // identity — we store it as BOTH user_metadata.username AND
+  // user_metadata.display_name so the handle_new_user trigger (which
+  // reads display_name) creates the profile with the correct name.
+  // There is no separate "personal name" anymore.
+  const signUpWithEmail = useCallback(async (email: string, password: string, _displayName: string, username: string) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { display_name: displayName || username, username },
+        data: { display_name: username, username },
         emailRedirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
       },
     });
