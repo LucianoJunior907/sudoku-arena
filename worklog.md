@@ -2178,3 +2178,30 @@ Stage Summary:
 - No ghost players — queue entries are properly removed on cancel.
 - Heartbeat mechanism is functional (entry stays alive while in queue).
 - Matchmaking E2E (2 players) still untested — needs a second account online simultaneously.
+
+---
+Task ID: fix-login-unclickable
+Agent: main
+Task: Login fields unclickable until clicking guest mode first.
+
+Work Log:
+- Reproduced on Vercel production: after dismissing onboarding, the login form (AuthDialog z-200) showed correctly visually, but inputs and buttons were unclickable. Only after clicking "Jogar como visitante" did everything become clickable.
+- Root cause found via agent-browser DOM inspection: the GuidedTour (shadcn Dialog component) was rendering its full-screen overlay (DialogOverlay: fixed inset-0 z-50 bg-black/50 pointer-events: auto) whenever onboarding.completed && !onboarding.tourSeen — REGARDLESS of auth state. When the user was on the login screen, the tour's overlay appeared BEHIND the AuthDialog (z-200 visually) but its fixed inset-0 overlay captured all pointer events, blocking clicks on the login form inputs/buttons.
+- Guest mode worked as a workaround because entering guest mode dismissed the AuthDialog (auth gate passed), making the tour the topmost visible element — its overlay no longer blocked anything because the tour dialog itself was the click target.
+- Fix: Extracted AuthedOverlays component in Providers.tsx that only renders GuidedTour, LevelUpToast, and AchievementToast when the user is authenticated (user OR isGuest). Now the tour overlay never appears on the login screen.
+- Also moved LevelUpToast and AchievementToast behind the same auth guard (they're irrelevant on the login screen and could cause similar issues).
+
+E2E Test Results (Vercel production — commit 3765a94):
+1. ✅ After onboarding dismiss, login page shows with NO tour overlay
+2. ✅ Only one fixed overlay: AuthDialog z-200 (the login container itself)
+3. ✅ #loginId field fillable directly: "filled: testuser"
+4. ✅ #password field fillable directly: "filled: mypass"
+5. ✅ Google button present, not disabled, clickable
+6. ✅ Signup toggle works — all 4 fields (username, email, password, confirmPassword) fillable
+7. ✅ Forgot password link clickable → reset form appears
+8. ✅ Back to login from reset works
+
+Stage Summary:
+- Login fields are now IMMEDIATELY clickable after onboarding — no need to click guest mode first.
+- Tour still shows normally after login (authenticated state) if not yet seen.
+- All login/signup/reset interactions work without the guest-mode workaround.
