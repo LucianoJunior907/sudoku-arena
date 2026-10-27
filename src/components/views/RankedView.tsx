@@ -309,7 +309,20 @@ export function RankedView() {
         const myBefore = isP1 ? updated.player1RatingBefore : updated.player2RatingBefore;
         const myAfter = isP1 ? updated.player1RatingAfter : updated.player2RatingAfter;
         // Refresh profile to get the new rating from server
-        refreshProfileRating();
+        await refreshProfileRating();
+        // Record the game in local stats (counts as "partida jogada" +
+        // updates history). This was MISSING — the loser's match never
+        // appeared in history because only handleFinish (caller side)
+        // called recordGame.
+        useAppStore.getState().updateProfile({ rating: myAfter });
+        useAppStore.getState().recordGame({
+          mode: "ranked",
+          difficulty: m.difficulty as Difficulty,
+          elapsedSec: elapsed,
+          errors,
+          hintsUsed: 0,
+          completed: won,
+        });
         setResultData({
           won,
           reason: updated.finishReason,
@@ -350,8 +363,11 @@ export function RankedView() {
     }
   }, []);
 
-  // FINISH match — send solution to server for validation
-  const handleFinish = async (abandon = false) => {
+  // FINISH match — send solution to server for validation.
+  // boardToSubmit: the complete board to validate (passed from handleNumber
+  // to avoid stale state — React hasn't committed setBoard yet when
+  // handleFinish is called synchronously from handleNumber).
+  const handleFinish = async (abandon = false, boardToSubmit?: number[]) => {
     const currentMatch = matchRef.current;
     if (!user || !currentMatch || reportedRef.current) return;
     reportedRef.current = true;
@@ -359,9 +375,13 @@ export function RankedView() {
     const isP1 = currentMatch.player1Id === user.id;
     const oppName = opponentName;
 
+    // Use the passed board if available (avoids stale state), else read
+    // from the component state (for abandon/manual triggers).
+    const solutionToSend = abandon ? [] : (boardToSubmit ?? board);
+
     const result: FinishResult = await finishRankedMatch(
       currentMatch.id,
-      abandon ? [] : board,
+      solutionToSend,
       abandon
     );
 
@@ -463,7 +483,12 @@ export function RankedView() {
 
         // Check WIN — first to solve correctly wins
         if (isComplete(newBoard)) {
-          handleFinish(false); // send solution to server for validation
+          // Pass newBoard directly — React state (board) hasn't been
+          // committed yet, so handleFinish would read a stale board
+          // without the last number placed. This caused the server to
+          // receive an incomplete solution → "Invalid solution" error →
+          // match never finished as 'solved' → eventually became 'abandoned'.
+          handleFinish(false, newBoard);
           return;
         }
 
