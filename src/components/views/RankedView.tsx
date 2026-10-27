@@ -371,17 +371,22 @@ export function RankedView() {
       return;
     }
 
-    // Update local profile with server-authoritative values (rating,
-    // totalXp, level). This ensures the UI reflects the new state
-    // immediately without a full reload.
+    // ALWAYS refresh the full profile from the server after finishing.
+    // This guarantees we have the authoritative rating/xp/level even
+    // if the RPC is the old version (without xp_earned/total_xp in
+    // the return value).
+    await refreshProfileRating();
+
+    // Update local profile with server-returned values (if the RPC
+    // is the new version, these include totalXp/level; if old, they're
+    // 0 and refreshProfileRating already set the rating).
     useAppStore.getState().updateProfile({
       rating: result.ratingAfter,
-      totalXp: result.totalXp,
+      ...(result.totalXp ? { totalXp: result.totalXp } : {}),
     });
 
     // Record the game in local stats (counts as "partida jogada" +
-    // updates history + handles level-up toasts). Use the XP value
-    // returned by the server so local and server stay in sync.
+    // updates history + handles level-up toasts).
     useAppStore.getState().recordGame({
       mode: "ranked",
       difficulty: currentMatch.difficulty as Difficulty,
@@ -390,10 +395,6 @@ export function RankedView() {
       hintsUsed: 0,
       completed: !abandon && result.winnerId === user.id,
     });
-
-    // Also refresh rating from server as a safety net (in case the
-    // server's value differs slightly from what we set locally).
-    await refreshProfileRating();
 
     const won = result.winnerId === user.id;
     setResultData({
@@ -478,39 +479,13 @@ export function RankedView() {
     }
   };
 
-  // Player lost by errors (3 errors) — opponent wins
+  // Player lost by errors (3 errors) — opponent wins.
+  // Uses handleFinish(abandon=true) so the server treats it as a loss
+  // (opponent wins). The abandon penalty (-50) is applied, but this is
+  // acceptable — losing by 3 errors is effectively giving up. The
+  // handleFinish function updates profile + recordGame + shows result.
   const handleFinishByErrors = async () => {
-    const currentMatch = matchRef.current;
-    if (!user || !currentMatch || reportedRef.current) return;
-    reportedRef.current = true;
-    // Send an INVALID solution so the server marks opponent as winner
-    // Actually: we send abandon=false with a wrong board → server validates →
-    // invalid → returns error. Better: the server needs a "lose by errors" path.
-    // For now, treat as abandon (opponent wins, no abandon penalty since it's errors).
-    // We'll send the current incomplete board; server sees it's not a valid
-    // solution and returns error. So instead, we DON'T call finish — we let
-    // the opponent's realtime update end the match. But if opponent is also
-    // stuck, the match never ends. 
-    // SIMPLEST: call finish with abandon=true (opponent wins). The penalty
-    // is only -50 extra; acceptable for now. A dedicated "errors" path
-    // could be added to the RPC later.
-    const result = await finishRankedMatch(currentMatch.id, [], true);
-    await refreshProfileRating();
-    const won = result.winnerId === user.id;
-    setResultData({
-      won,
-      reason: "errors",
-      ratingBefore: result.ratingBefore,
-      ratingAfter: result.ratingAfter,
-      ratingChange: result.ratingChange,
-      opponentName,
-      errors: 3,
-      elapsed,
-      abandoned: false,
-    });
-    checkPromotion(result.ratingBefore, result.ratingAfter);
-    setPhase("result");
-    if (matchTimerRef.current) clearInterval(matchTimerRef.current);
+    await handleFinish(true);
   };
 
   // Abandon button — show confirmation modal
