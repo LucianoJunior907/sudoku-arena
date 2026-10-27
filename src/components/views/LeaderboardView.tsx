@@ -65,6 +65,34 @@ export function LeaderboardView() {
     return () => { cancelled = true; };
   }, []);
 
+  // Refresh the user's own rating from the server when the leaderboard
+  // mounts. The local store (Zustand + localStorage) may have a stale
+  // rating from before a ranked match. This ensures the "Your rating"
+  // card shows the current server value.
+  useEffect(() => {
+    const refreshOwnRating = async () => {
+      try {
+        const { supabase } = await import("@/lib/supabase/client");
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data } = await supabase
+          .from("profiles")
+          .select("rating, total_xp, level")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (data) {
+          useAppStore.getState().updateProfile({
+            rating: (data as Record<string, unknown>).rating as number,
+            totalXp: (data as Record<string, unknown>).total_xp as number,
+          });
+        }
+      } catch {
+        // non-critical
+      }
+    };
+    refreshOwnRating();
+  }, []);
+
   // Auto-refresh when the tab regains focus (e.g., user comes back from
   // a ranked match) and every 30 seconds while visible. This ensures
   // the leaderboard reflects new ratings without requiring a manual
