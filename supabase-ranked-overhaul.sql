@@ -86,6 +86,7 @@ drop policy if exists "Queue: users can insert own" on public.ranked_queue;
 drop policy if exists "Queue: users can read all" on public.ranked_queue;
 drop policy if exists "Queue: users can delete own" on public.ranked_queue;
 drop policy if exists "Queue: users can update own" on public.ranked_queue;
+drop policy if exists "Queue: users can update own heartbeat" on public.ranked_queue;
 
 create policy "Queue: users can insert own" on public.ranked_queue
   for insert with check (auth.uid() = user_id);
@@ -101,6 +102,7 @@ drop policy if exists "Ranked matches: players can read" on public.ranked_matche
 drop policy if exists "Ranked matches: anyone can insert" on public.ranked_matches;
 drop policy if exists "Ranked matches: players can update" on public.ranked_matches;
 drop policy if exists "Ranked matches: players can insert" on public.ranked_matches;
+drop policy if exists "Ranked matches: players can update progress" on public.ranked_matches;
 drop policy if exists "Player1 can update own fields" on public.ranked_matches;
 drop policy if exists "Player2 can update own fields" on public.ranked_matches;
 
