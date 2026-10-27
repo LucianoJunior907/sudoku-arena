@@ -51,6 +51,8 @@ declare
   v_errors integer;
   v_completed boolean;
   v_difficulty text;
+  v_rem integer;       -- temporário para cálculo de level
+  v_opp_rem integer;   -- temporário para cálculo de level do oponente
 begin
   if v_user_id is null then
     return jsonb_build_object('error', 'Not authenticated');
@@ -192,20 +194,18 @@ begin
 
   -- Recalcular level (100 + level*50 XP por nível)
   v_level := 1;
-  declare v_rem integer := v_new_total_xp; begin
-    while v_rem >= (100 + v_level * 50) loop
-      v_rem := v_rem - (100 + v_level * 50);
-      v_level := v_level + 1;
-    end loop;
-  end;
+  v_rem := v_new_total_xp;
+  while v_rem >= (100 + v_level * 50) loop
+    v_rem := v_rem - (100 + v_level * 50);
+    v_level := v_level + 1;
+  end loop;
 
   v_opp_level := 1;
-  declare v_rem2 integer := v_opp_new_total_xp; begin
-    while v_rem2 >= (100 + v_opp_level * 50) loop
-      v_rem2 := v_rem2 - (100 + v_opp_level * 50);
-      v_opp_level := v_opp_level + 1;
-    end loop;
-  end;
+  v_opp_rem := v_opp_new_total_xp;
+  while v_opp_rem >= (100 + v_opp_level * 50) loop
+    v_opp_rem := v_opp_rem - (100 + v_opp_level * 50);
+    v_opp_level := v_opp_level + 1;
+  end loop;
 
   -- g) Atualizar profiles (rating + XP + level) ATOMICAMENTE
   update public.profiles set
@@ -228,14 +228,16 @@ begin
   values (v_user_id, 'ranked', v_difficulty, v_elapsed_sec, v_errors, 0, v_completed, v_xp, v_rating_after, false);
 
   -- Para o oponente (também conta como partida)
-  declare v_opp_errors integer;
-  declare v_opp_completed boolean;
-  begin
-    v_opp_errors := case when v_is_player1 then v_match.player2_errors else v_match.player1_errors end;
-    v_opp_completed := (v_winner_id = v_opponent_id);
-    insert into public.matches (user_id, mode, difficulty, elapsed_sec, errors, hints_used, completed, xp_earned, score, is_record)
-    values (v_opponent_id, 'ranked', v_difficulty, v_elapsed_sec, v_opp_errors, 0, v_opp_completed, v_opp_xp, v_opponent_rating_after, false);
-  end;
+  -- NOTA: variáveis calculadas inline (sem sub-bloco DECLARE, que só
+  -- pode aparecer no início de um BEGIN...END em PL/pgSQL).
+  insert into public.matches (user_id, mode, difficulty, elapsed_sec, errors, hints_used, completed, xp_earned, score, is_record)
+  values (
+    v_opponent_id, 'ranked', v_difficulty, v_elapsed_sec,
+    case when v_is_player1 then v_match.player2_errors else v_match.player1_errors end,
+    0,
+    (v_winner_id = v_opponent_id),
+    v_opp_xp, v_opponent_rating_after, false
+  );
 
   -- i) Finalizar a partida com rating_before/after
   if v_is_player1 then
