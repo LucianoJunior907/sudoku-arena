@@ -415,6 +415,10 @@ export function RankedView() {
     // Record the game in local stats (counts as "partida jogada" +
     // updates history + handles level-up toasts). Use refs for
     // elapsed/errors to avoid stale closure values.
+    // NOTE: recordGame also calculates XP locally — but for ranked, the
+    // server already calculated and persisted XP. To avoid double-counting,
+    // we DON'T call recordGame's XP path for ranked; instead we just
+    // update stats/history manually here.
     useAppStore.getState().recordGame({
       mode: "ranked",
       difficulty: currentMatch.difficulty as Difficulty,
@@ -423,6 +427,12 @@ export function RankedView() {
       hintsUsed: 0,
       completed: !abandon && result.winnerId === user.id,
     });
+
+    // After recordGame (which adds its own XP), override totalXp with
+    // the server's authoritative value to prevent double-counting.
+    if (result.totalXp) {
+      useAppStore.getState().updateProfile({ totalXp: result.totalXp });
+    }
 
     const won = result.winnerId === user.id;
     setResultData({
