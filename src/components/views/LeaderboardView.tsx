@@ -65,6 +65,26 @@ export function LeaderboardView() {
     return () => { cancelled = true; };
   }, []);
 
+  // Auto-refresh when the tab regains focus (e.g., user comes back from
+  // a ranked match) and every 30 seconds while visible. This ensures
+  // the leaderboard reflects new ratings without requiring a manual
+  // refresh or page reload.
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState === "visible") {
+        fetchGlobalLeaderboard(50).then((data) => {
+          if (data.length > 0) setEntries(data);
+        });
+      }
+    };
+    document.addEventListener("visibilitychange", refresh);
+    const interval = setInterval(refresh, 30000);
+    return () => {
+      document.removeEventListener("visibilitychange", refresh);
+      clearInterval(interval);
+    };
+  }, []);
+
   if (isGuest) {
     return <GuestLoginRequired featureName={locale === "pt-BR" ? "Ranking Global" : "Global Leaderboard"} />;
   }

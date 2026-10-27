@@ -40,6 +40,9 @@ export interface FinishResult {
   ratingBefore: number;
   ratingAfter: number;
   ratingChange: number;
+  xpEarned: number;
+  totalXp: number;
+  level: number;
   reason: string | null;
   error?: string;
 }
@@ -171,6 +174,9 @@ export async function finishRankedMatch(
       ratingBefore: 0,
       ratingAfter: 0,
       ratingChange: 0,
+      xpEarned: 0,
+      totalXp: 0,
+      level: 1,
       reason: null,
       error: error.message,
     };
@@ -182,6 +188,9 @@ export async function finishRankedMatch(
     ratingBefore: (r.rating_before as number) ?? 0,
     ratingAfter: (r.rating_after as number) ?? 0,
     ratingChange: (r.rating_change as number) ?? 0,
+    xpEarned: (r.xp_earned as number) ?? 0,
+    totalXp: (r.total_xp as number) ?? 0,
+    level: (r.level as number) ?? 1,
     reason: (r.reason as string) ?? null,
     error: (r.error as string) ?? undefined,
   };

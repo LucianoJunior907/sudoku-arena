@@ -152,6 +152,53 @@ export function RankedView() {
     };
   }, [phase]);
 
+  // Keyboard input — alphanumeric keys 1-9 to place numbers, 0/Backspace
+  // to erase, N for notes mode, arrows to move selection. Mirrors the
+  // SoloView keyboard handler so PC players can use the keyboard.
+  // handleNumberRef is kept in sync via effect below to avoid TDZ.
+  const handleNumberRef = useRef<(n: number) => void>(() => {});
+  useEffect(() => {
+    if (phase !== "match") return;
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return;
+      if (e.key >= "1" && e.key <= "9") {
+        e.preventDefault();
+        handleNumberRef.current(Number(e.key));
+      } else if (e.key === "0" || e.key === "Backspace" || e.key === "Delete") {
+        e.preventDefault();
+        if (selectedIndex >= 0 && !given[selectedIndex]) {
+          setBoard((prev) => { const n = prev.slice(); n[selectedIndex] = 0; return n; });
+          setNotes((prev) => { const n = prev.map((x) => x.slice()); n[selectedIndex] = []; return n; });
+        }
+      } else if (e.key === "n" || e.key === "N") {
+        setNotesMode((m) => !m);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        if (selectedIndex >= 0) {
+          const row = Math.floor(selectedIndex / 9);
+          const col = selectedIndex % 9;
+          if (row > 0) setSelectedIndex((row - 1) * 9 + col);
+        }
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        if (selectedIndex >= 0) {
+          const row = Math.floor(selectedIndex / 9);
+          const col = selectedIndex % 9;
+          if (row < 8) setSelectedIndex((row + 1) * 9 + col);
+        }
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        if (selectedIndex > 0) setSelectedIndex(selectedIndex - 1);
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        if (selectedIndex < 80) setSelectedIndex(selectedIndex + 1);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [phase, selectedIndex, given]);
+
   // Queue heartbeat — every 10s while in queue, keeps entry alive
   useEffect(() => {
     if (phase !== "queue") {
@@ -324,7 +371,28 @@ export function RankedView() {
       return;
     }
 
-    // Refresh profile rating from server
+    // Update local profile with server-authoritative values (rating,
+    // totalXp, level). This ensures the UI reflects the new state
+    // immediately without a full reload.
+    useAppStore.getState().updateProfile({
+      rating: result.ratingAfter,
+      totalXp: result.totalXp,
+    });
+
+    // Record the game in local stats (counts as "partida jogada" +
+    // updates history + handles level-up toasts). Use the XP value
+    // returned by the server so local and server stay in sync.
+    useAppStore.getState().recordGame({
+      mode: "ranked",
+      difficulty: currentMatch.difficulty as Difficulty,
+      elapsedSec: elapsed,
+      errors: abandon ? 3 : errors,
+      hintsUsed: 0,
+      completed: !abandon && result.winnerId === user.id,
+    });
+
+    // Also refresh rating from server as a safety net (in case the
+    // server's value differs slightly from what we set locally).
     await refreshProfileRating();
 
     const won = result.winnerId === user.id;
@@ -456,10 +524,11 @@ export function RankedView() {
     await handleFinish(true);
   };
 
-  // Keep handleFinishRef in sync via effect (ref assignment in render
-  // is flagged by react-hooks/refs rule).
+  // Keep handleFinishRef and handleNumberRef in sync via effect (ref
+  // assignment in render is flagged by react-hooks/refs rule).
   useEffect(() => {
     handleFinishRef.current = handleFinish;
+    handleNumberRef.current = handleNumber;
   });
 
   if (isGuest) {
