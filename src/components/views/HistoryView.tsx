@@ -55,6 +55,11 @@ export function HistoryView() {
                           <Trophy className="h-3 w-3" />
                           {t("history.win")}
                         </Badge>
+                      ) : h.mode === "ranked" ? (
+                        <Badge variant="secondary" className="gap-1">
+                          <X className="h-3 w-3" />
+                          {t("history.loss")}
+                        </Badge>
                       ) : (
                         <Badge variant="secondary" className="gap-1">
                           <X className="h-3 w-3" />

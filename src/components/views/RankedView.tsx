@@ -76,7 +76,9 @@ export function RankedView() {
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [notesMode, setNotesMode] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+  const elapsedRef = useRef(0);
   const [errors, setErrors] = useState(0);
+  const errorsRef = useRef(0);
   const [resultData, setResultData] = useState<ResultData | null>(null);
   const [showAbandonModal, setShowAbandonModal] = useState(false);
   const [showPromotion, setShowPromotion] = useState(false);
@@ -145,7 +147,10 @@ export function RankedView() {
   useEffect(() => {
     if (phase !== "match") return;
     matchTimerRef.current = setInterval(() => {
-      setElapsed((s) => s + 1);
+      setElapsed((s) => {
+        elapsedRef.current = s + 1;
+        return s + 1;
+      });
     }, 1000);
     return () => {
       if (matchTimerRef.current) clearInterval(matchTimerRef.current);
@@ -295,7 +300,9 @@ export function RankedView() {
     setNotes(Array.from({ length: 81 }, () => []));
     setSelectedIndex(-1);
     setErrors(0);
+    errorsRef.current = 0;
     setElapsed(0);
+    elapsedRef.current = 0;
     reportedRef.current = false;
     setPhase("match");
 
@@ -318,8 +325,8 @@ export function RankedView() {
         useAppStore.getState().recordGame({
           mode: "ranked",
           difficulty: m.difficulty as Difficulty,
-          elapsedSec: elapsed,
-          errors,
+          elapsedSec: elapsedRef.current,
+          errors: errorsRef.current,
           hintsUsed: 0,
           completed: won,
         });
@@ -406,12 +413,13 @@ export function RankedView() {
     });
 
     // Record the game in local stats (counts as "partida jogada" +
-    // updates history + handles level-up toasts).
+    // updates history + handles level-up toasts). Use refs for
+    // elapsed/errors to avoid stale closure values.
     useAppStore.getState().recordGame({
       mode: "ranked",
       difficulty: currentMatch.difficulty as Difficulty,
-      elapsedSec: elapsed,
-      errors: abandon ? 3 : errors,
+      elapsedSec: elapsedRef.current,
+      errors: abandon ? 3 : errorsRef.current,
       hintsUsed: 0,
       completed: !abandon && result.winnerId === user.id,
     });
@@ -473,6 +481,7 @@ export function RankedView() {
         if (isWrong) {
           newErrors = errors + 1;
           setErrors(newErrors);
+          errorsRef.current = newErrors;
           toast.error(locale === "pt-BR" ? `Erro! ${newErrors}/3` : `Error! ${newErrors}/3`);
           if (newErrors >= 3) {
             // Player loses by errors — finish on server (opponent wins)
