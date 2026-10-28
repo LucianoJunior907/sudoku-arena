@@ -7,6 +7,9 @@
 --   2. Calcular e persistir XP no profile (total_xp, level)
 --   3. Atualizar rating (já fazia, mantido)
 --   4. Tudo atômico e idempotente
+--   5. FIX C-05: liberar os campos protegidos via GUC transação-scoped
+--      (sem isso, o trigger protect_profile reverte rating/XP/level —
+--      a partida gravava rating_after mas o profile ficava zerado)
 -- ============================================
 
 create or replace function public.finish_ranked_match(
@@ -208,6 +211,15 @@ begin
   end loop;
 
   -- g) Atualizar profiles (rating + XP + level) ATOMICAMENTE
+  -- FIX C-05: o trigger protect_profile (instalado por supabase-security.sql)
+  -- reverte rating/total_xp/level/streak_freezes em QUALQUER update de profiles
+  -- quando o GUC 'app.skip_profile_protection' não é 'true'. Sem esta liberação,
+  -- os updates abaixo eram silenciosamente revertidos e o progresso do ranked
+  -- nunca persistia (leaderboard sempre 0).
+  -- A liberação usa escopo de TRANSAÇÃO (3º argumento = true): expira sozinha
+  -- no COMMIT/ROLLBACK, sem nunca deixar a sessão desprotegida.
+  perform set_config('app.skip_profile_protection', 'true', true);
+
   update public.profiles set
     rating = v_rating_after,
     total_xp = v_new_total_xp,
@@ -221,6 +233,10 @@ begin
     level = v_opp_level,
     updated_at = now()
   where id = v_opponent_id;
+
+  -- Fecha a janela de autorização dentro desta transação (defesa em
+  -- profundidade; com is_local=true o valor expiraria no COMMIT de todo modo)
+  perform set_config('app.skip_profile_protection', 'false', true);
 
   -- h) Salvar na tabela `matches` (conta como partida jogada + XP)
   -- Para o usuário atual
