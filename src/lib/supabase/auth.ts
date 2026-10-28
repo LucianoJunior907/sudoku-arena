@@ -116,19 +116,22 @@ export function useAuth() {
 
     // If it looks like an email (contains @), use directly
     if (!trimmed.includes("@")) {
-      // Try to find email by username via RPC
+      // Login by username — FIX C-01: the RPC verifies the PASSWORD
+      // server-side (bcrypt) before returning the caller's own email.
+      // Every failure mode returns the same {"found": false}.
       try {
         const { data: emailResult, error: rpcError } = await supabase.rpc("get_email_by_username", {
           p_username: trimmed,
+          p_password: password,
         });
-        if (!rpcError && emailResult) {
-          const result = emailResult as Record<string, unknown>;
-          if (result.found && result.email) {
-            emailToUse = result.email as string;
-          }
+        if (rpcError) throw rpcError;
+        const result = (emailResult ?? {}) as Record<string, unknown>;
+        if (!result.found || !result.email) {
+          return { error: new Error("Invalid login credentials") };
         }
+        emailToUse = result.email as string;
       } catch {
-        // RPC might not exist yet — fall through to use identifier as email
+        // RPC unavailable — fall through to use identifier as email
       }
     }
 

@@ -192,24 +192,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // If it looks like an email (contains @), use directly
     if (!trimmed.includes("@")) {
-      // Try to find email by username via RPC.
-      // NOTE: this RPC is anon-accessible and returns the user's email.
-      // This is an accepted trade-off for username-based login: an
-      // attacker can enumerate which usernames exist and learn their
-      // emails. Mitigation: rely on Supabase rate limiting + password
-      // hashing. Removing this would break username login entirely.
+      // Login by username — FIX C-01: the RPC now verifies the PASSWORD
+      // server-side (bcrypt via pgcrypto) and only then returns the
+      // caller's OWN email. Anonymous callers can no longer harvest other
+      // users' emails; wrong password / unknown username / throttled all
+      // return the same {"found": false} — no username enumeration here.
       try {
         const { data: emailResult, error: rpcError } = await supabase.rpc("get_email_by_username", {
           p_username: trimmed,
+          p_password: password,
         });
-        if (!rpcError && emailResult) {
-          const result = emailResult as Record<string, unknown>;
-          if (result.found && result.email) {
-            emailToUse = result.email as string;
-          }
+        if (rpcError) throw rpcError;
+        const result = (emailResult ?? {}) as Record<string, unknown>;
+        if (!result.found || !result.email) {
+          // Generic error for every failure mode — same message a wrong
+          // password produces on the email path.
+          return { error: new Error("Invalid login credentials") };
         }
+        emailToUse = result.email as string;
       } catch {
-        // RPC might not exist yet — fall through to use identifier as email
+        // RPC unavailable (e.g. older backend during transition) — fall
+        // through to a direct sign-in attempt with the identifier as
+        // email, which fails with a generic message too.
       }
     }
 
