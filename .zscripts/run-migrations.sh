@@ -44,6 +44,7 @@ SQL_FILES=(
   "supabase-fix-c01-email-leak.sql"
   "supabase-fix-c02-forgery.sql"
   "supabase-fix-c03-update-user-rating.sql"
+  "supabase-fix-c04-xp-server-side.sql"
 )
 
 echo "============================================"
