@@ -171,8 +171,17 @@ function reducer(state: GameState, action: Action): GameState {
     }
     case "SELECT":
       return { ...state, selectedIndex: action.index };
-    case "TOGGLE_NOTES_MODE":
-      return { ...state, notesMode: !state.notesMode };
+    case "TOGGLE_NOTES_MODE": {
+      const notesMode = !state.notesMode;
+      // Keep any active lock in sync with the notes toggle so that
+      // "estou no modo anotação" always governs what clicks/drags do,
+      // regardless of WHEN the digit was locked. value-lock ↔ note-lock
+      // follows notesMode; the lockedDigit and highlight stay the same.
+      let lockMode = state.lockMode;
+      if (state.lockMode === "value" && notesMode) lockMode = "note";
+      else if (state.lockMode === "note" && !notesMode) lockMode = "value";
+      return { ...state, notesMode, lockMode };
+    }
     case "AUTO_NOTES": {
       if (state.status !== "playing") return state;
       const notes = state.notes.map((n) => n.slice());
@@ -747,30 +756,34 @@ export function useSudokuGame(mode: GameMode = "solo") {
   const lockNote = useCallback((digit: number) => dispatch({ type: "LOCK_NOTE", digit }), []);
   const clearLock = useCallback(() => dispatch({ type: "LOCK_CLEAR" }), []);
   // Apply the currently locked value/note to a specific cell. Used by
-  // click+drag on the board. Respects the same edit rules as normal
-  // input: given/hint cells are skipped, and in value-mode cells that
-  // already hold a different user value are NOT overwritten (matching
-  // the spec "não sobrescreva ... números preexistentes que não possam
-  // ser alterados"). For note mode, toggles the note on each dragged
-  // cell — but to make drag intuitive we only ADD the note (idempotent
-  // across a single drag), never remove it mid-drag.
+  // click+drag on the board. The notes toggle (N) is the MASTER switch:
+  // when notesMode is on, clicks/drags ALWAYS produce notes — even if
+  // the lock was set as a "value" lock before notes mode was turned on.
+  // (The TOGGLE_NOTES_MODE reducer also syncs lockMode ↔ notesMode, but
+  // we double-check here for robustness.) Otherwise the branch follows
+  // lockMode. Respects the same edit rules as normal input: given/hint
+  // cells are skipped, and value-mode cells that already hold a
+  // different user value are NOT overwritten. For note mode, toggles
+  // the note on each dragged cell — but to make drag intuitive we only
+  // ADD the note (idempotent across a single drag), never remove it
+  // mid-drag.
   const applyLockedValueToCell = useCallback(
     (index: number, allowToggle = false) => {
       if (index < 0 || index > 80) return;
-      if (state.lockMode === "value") {
-        const v = state.lockedDigit;
+      if (state.lockedDigit === 0) return;
+      const v = state.lockedDigit;
+      // notesMode is the master toggle: when on, always annotate.
+      const isNote = state.notesMode || state.lockMode === "note";
+      if (!isNote) {
         if (state.given[index] || state.hintCells.includes(index)) return;
         const prev = state.board[index];
         // Don't overwrite a different pre-existing user value.
         if (prev !== 0 && prev !== v) return;
         // Same value: erase ONLY on an explicit click (allowToggle).
         // During a drag-paint pass we skip — never erase mid-drag.
-        // (When allowToggle is true, SET_VALUE with the same value
-        // triggers the reducer's tap-same-erases path → toggle remove.)
         if (prev === v && !allowToggle) return;
         dispatch({ type: "SET_VALUE", index, value: v });
-      } else if (state.lockMode === "note") {
-        const v = state.lockedDigit;
+      } else {
         if (state.given[index] || state.hintCells.includes(index)) return;
         if (state.board[index] !== 0) return; // only empty cells get notes
         const current = state.notes[index];
@@ -778,7 +791,7 @@ export function useSudokuGame(mode: GameMode = "solo") {
         dispatch({ type: "TOGGLE_NOTE", index, value: v });
       }
     },
-    [state.lockMode, state.lockedDigit, state.given, state.hintCells, state.board, state.notes]
+    [state.lockMode, state.lockedDigit, state.notesMode, state.given, state.hintCells, state.board, state.notes]
   );
   const pause = useCallback(() => dispatch({ type: "PAUSE" }), []);
   const resume = useCallback(() => dispatch({ type: "RESUME" }), []);
