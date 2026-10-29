@@ -117,6 +117,11 @@ export function SudokuBoard({
 
   const stopDrag = () => {
     if (dragStateRef.current.active) {
+      // CRITICAL: remove the global listeners — otherwise they leak and
+      // stack up on every drag. Stale listeners keep OLD closures (old
+      // lockMode/lockedDigit) and would corrupt later drag sessions
+      // (e.g. a value-7 listener firing during a note-4 drag).
+      if (dragStateRef.current.cleanup) dragStateRef.current.cleanup();
       dragStateRef.current = { active: false, indices: new Set(), cleanup: null };
       forceRender((n) => n + 1);
     }
