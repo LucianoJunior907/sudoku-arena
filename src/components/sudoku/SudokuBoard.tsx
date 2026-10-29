@@ -93,15 +93,20 @@ export function SudokuBoard({
   }, [board, settings.showCandidateCount]);
 
   // ---- Click + drag to paint cells with the locked digit ----
-  // Approach: on pointerdown in a cell, start a drag session and apply.
-  // We attach GLOBAL pointermove + pointerup listeners during the drag
-  // (not on the board container) because on touch the element that
-  // received pointerdown captures all subsequent pointer events — so
-  // a container-level onPointerMove would never fire on touch. Global
-  // listeners with elementFromPoint work uniformly for mouse + touch.
-  const dragStateRef = useRef<{ active: boolean; indices: Set<number> }>({
+  // Approach: on pointerdown in a cell, start a drag session, apply to
+  // the cell, and IMMEDIATELY attach global pointermove/pointerup
+  // listeners (not via useEffect — that runs too late for fast drags).
+  // Global listeners with elementFromPoint work for mouse + touch
+  // because on touch the pointerdown element captures subsequent
+  // events, so container-level onPointerMove would never fire.
+  const dragStateRef = useRef<{
+    active: boolean;
+    indices: Set<number>;
+    cleanup: (() => void) | null;
+  }>({
     active: false,
     indices: new Set(),
+    cleanup: null,
   });
   const [, forceRender] = useState(0);
 
@@ -111,35 +116,24 @@ export function SudokuBoard({
     onApplyLocked(i);
   };
 
-  const handleCellPointerDown = (i: number) => {
-    if (lockMode !== "none") {
-      // Lock active: apply the locked value AND select the cell (so the
-      // row/col/box highlights follow the clicked cell). Start a drag
-      // session for potential paint-drag.
-      dragStateRef.current = { active: true, indices: new Set([i]) };
-      onSelect(i);
-      onApplyLocked(i);
-      forceRender((n) => n + 1);
-    } else {
-      // No lock: just select. (Don't also call onSelect on click —
-      // pointerdown is enough and avoids a double sound.)
-      onSelect(i);
-    }
-  };
-
   const stopDrag = () => {
     if (dragStateRef.current.active) {
-      dragStateRef.current = { active: false, indices: new Set() };
+      dragStateRef.current = { active: false, indices: new Set(), cleanup: null };
       forceRender((n) => n + 1);
     }
   };
 
-  // Global pointermove + pointerup during drag. Attached via useEffect
-  // so they fire regardless of which element captured the pointer (the
-  // key fix for touch devices).
-  useEffect(() => {
-    if (!dragStateRef.current.active) return;
+  const startDrag = (startIndex: number) => {
+    // Tear down any previous session (safety).
+    if (dragStateRef.current.cleanup) dragStateRef.current.cleanup();
+    dragStateRef.current = {
+      active: true,
+      indices: new Set([startIndex]),
+      cleanup: null,
+    };
+
     const onMove = (e: PointerEvent) => {
+      if (!dragStateRef.current.active) return;
       if (e.buttons !== 1) {
         stopDrag();
         return;
@@ -156,12 +150,34 @@ export function SudokuBoard({
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
     window.addEventListener("pointercancel", onUp);
-    return () => {
+    dragStateRef.current.cleanup = () => {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onUp);
     };
-  });
+  };
+
+  // Cleanup on unmount.
+  useEffect(() => {
+    return () => {
+      if (dragStateRef.current.cleanup) dragStateRef.current.cleanup();
+    };
+  }, []);
+
+  const handleCellPointerDown = (i: number) => {
+    if (lockMode !== "none") {
+      // Lock active: select the cell (so row/col/box highlights follow),
+      // apply the locked value, and start a drag-paint session.
+      onSelect(i);
+      onApplyLocked(i);
+      startDrag(i);
+      forceRender((n) => n + 1);
+    } else {
+      // No lock: just select. pointerdown is enough (no onClick needed,
+      // avoids a double select + double sound).
+      onSelect(i);
+    }
+  };
 
   return (
     <div
