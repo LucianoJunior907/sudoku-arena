@@ -94,16 +94,16 @@ export function SudokuBoard({
 
   // ---- Click + drag to paint cells with the locked digit ----
   // Approach: on pointerdown in a cell, start a drag session and apply.
-  // On pointermove over the board (bubbles from cells), use
-  // elementFromPoint to find the cell under the pointer and apply.
-  // pointerup/cancel ends the drag. This works for mouse, touch, and
-  // automated tests because pointermove bubbles (pointerenter does not).
+  // We attach GLOBAL pointermove + pointerup listeners during the drag
+  // (not on the board container) because on touch the element that
+  // received pointerdown captures all subsequent pointer events — so
+  // a container-level onPointerMove would never fire on touch. Global
+  // listeners with elementFromPoint work uniformly for mouse + touch.
   const dragStateRef = useRef<{ active: boolean; indices: Set<number> }>({
     active: false,
     indices: new Set(),
   });
   const [, forceRender] = useState(0);
-  const boardRef = useRef<HTMLDivElement>(null);
 
   const applyToCell = (i: number) => {
     if (dragStateRef.current.indices.has(i)) return;
@@ -113,29 +113,18 @@ export function SudokuBoard({
 
   const handleCellPointerDown = (i: number) => {
     if (lockMode !== "none") {
+      // Lock active: apply the locked value AND select the cell (so the
+      // row/col/box highlights follow the clicked cell). Start a drag
+      // session for potential paint-drag.
       dragStateRef.current = { active: true, indices: new Set([i]) };
+      onSelect(i);
       onApplyLocked(i);
       forceRender((n) => n + 1);
     } else {
+      // No lock: just select. (Don't also call onSelect on click —
+      // pointerdown is enough and avoids a double sound.)
       onSelect(i);
     }
-  };
-
-  const handleBoardPointerMove = (e: React.PointerEvent) => {
-    if (!dragStateRef.current.active) return;
-    if (e.buttons !== 1) {
-      // Button no longer held — stop.
-      stopDrag();
-      return;
-    }
-    const el = document.elementFromPoint(e.clientX, e.clientY);
-    if (!el) return;
-    // Walk up to find the gridcell.
-    const cell = (el as HTMLElement).closest('[role="gridcell"]') as HTMLElement | null;
-    if (!cell) return;
-    const idx = Number(cell.getAttribute("data-cell-index"));
-    if (Number.isNaN(idx) || idx < 0 || idx > 80) return;
-    applyToCell(idx);
   };
 
   const stopDrag = () => {
@@ -145,15 +134,32 @@ export function SudokuBoard({
     }
   };
 
-  // Global pointerup listener to end drag even if pointer leaves the board.
+  // Global pointermove + pointerup during drag. Attached via useEffect
+  // so they fire regardless of which element captured the pointer (the
+  // key fix for touch devices).
   useEffect(() => {
     if (!dragStateRef.current.active) return;
-    const up = () => stopDrag();
-    window.addEventListener("pointerup", up);
-    window.addEventListener("pointercancel", up);
+    const onMove = (e: PointerEvent) => {
+      if (e.buttons !== 1) {
+        stopDrag();
+        return;
+      }
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      if (!el) return;
+      const cell = (el as HTMLElement).closest('[role="gridcell"]') as HTMLElement | null;
+      if (!cell) return;
+      const idx = Number(cell.getAttribute("data-cell-index"));
+      if (Number.isNaN(idx) || idx < 0 || idx > 80) return;
+      applyToCell(idx);
+    };
+    const onUp = () => stopDrag();
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
     return () => {
-      window.removeEventListener("pointerup", up);
-      window.removeEventListener("pointercancel", up);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
     };
   });
 
@@ -182,8 +188,6 @@ export function SudokuBoard({
       )}
 
       <div
-        ref={boardRef}
-        onPointerMove={handleBoardPointerMove}
         className="grid h-full w-full grid-cols-9 grid-rows-9 overflow-hidden rounded-lg border-[3px] border-[var(--cell-border-thick)] bg-[var(--cell-border-thick)] gap-px shadow-lg">
         {board.map((value, i) => {
           const { row, col } = indexToRc(i);
@@ -224,7 +228,6 @@ export function SudokuBoard({
               borderClasses={borderClasses}
               isLockedDrag={lockMode !== "none"}
               onPointerDown={() => handleCellPointerDown(i)}
-              onClick={() => { if (lockMode === "none") onSelect(i); }}
               ariaLabel={`${t("board.cell")} ${row + 1}, ${col + 1}${value ? `, ${t("board.value")} ${value}` : `, ${t("board.empty")}`}`}
             />
           );
@@ -252,7 +255,6 @@ function Cell({
   borderClasses,
   isLockedDrag,
   onPointerDown,
-  onClick,
   ariaLabel,
 }: {
   cellIndex: number;
@@ -272,7 +274,6 @@ function Cell({
   borderClasses: string;
   isLockedDrag: boolean;
   onPointerDown: () => void;
-  onClick: () => void;
   ariaLabel: string;
 }) {
   const bg = cn(
@@ -307,8 +308,8 @@ function Cell({
       data-cell-index={cellIndex}
       aria-label={ariaLabel}
       onPointerDown={onPointerDown}
-      onClick={onClick}
       // When in lock mode, use crosshair cursor to hint at drag-paint.
+      // touchAction:none prevents scroll-stealing during drag on touch.
       style={{ cursor: isLockedDrag ? "crosshair" : "pointer", touchAction: "none" }}
       className={cn(
         "relative flex aspect-square items-center justify-center border border-[var(--cell-border)] transition-colors duration-100",
