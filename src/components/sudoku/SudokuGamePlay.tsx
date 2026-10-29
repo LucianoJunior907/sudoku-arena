@@ -70,19 +70,18 @@ export function SudokuGamePlay({
       const target = e.target as HTMLElement;
       if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return;
       // Lock mode: L + digit (value), Shift + L + digit (note).
+      // CONTEXT-AWARE (user feedback): when the notes mode (N) is ON,
+      // L + digit locks as a NOTE — dragging must produce notes, not
+      // values, because that's what "estou no modo anotação" means.
       // "L" alone (without a following digit) or Escape clears the lock.
-      // We detect L being held: when key === 'l'/'L' AND shift, we mark
-      // a pending "note-lock" awaiting the next digit. When 'l'/'L'
-      // without shift, we mark a pending "value-lock". A bare L with no
-      // following digit clears the lock (handled on keyup / Escape).
       if (e.key === "l" || e.key === "L") {
         e.preventDefault();
         // toggle: if a lock is already active, pressing L clears it.
         if (state.lockMode !== "none") {
           game.clearLock();
         }
-        // Record intent for the next digit.
-        lockIntentRef.current = e.shiftKey ? "note" : "value";
+        // Record intent for the next digit: Shift or notes-mode → note.
+        lockIntentRef.current = (e.shiftKey || state.notesMode) ? "note" : "value";
         return;
       }
       if (e.key === "Escape") {
@@ -99,13 +98,19 @@ export function SudokuGamePlay({
         const n = Number(e.key);
         // If L was just pressed (or a lock is already active), digit
         // sets/switches the locked digit instead of normal placement.
-        if (lockIntentRef.current === "value" || (state.lockMode === "value" && lockIntentRef.current !== "note")) {
-          game.lockValue(n);
-          lockIntentRef.current = "none";
-          return;
-        }
-        if (lockIntentRef.current === "note" || state.lockMode === "note") {
-          game.lockNote(n);
+        const hasLockIntent = lockIntentRef.current !== "none";
+        const isLocked = state.lockMode !== "none";
+        if (hasLockIntent || isLocked) {
+          // Note lock when: explicit Shift+L intent, already note-locked,
+          // OR notes mode (N) is active — the locked digit follows the
+          // current input mode (feedback #2: dragging in notes mode
+          // must annotate, never fill values).
+          const wantsNote =
+            lockIntentRef.current === "note" ||
+            state.lockMode === "note" ||
+            state.notesMode;
+          if (wantsNote) game.lockNote(n);
+          else game.lockValue(n);
           lockIntentRef.current = "none";
           return;
         }
@@ -137,7 +142,7 @@ export function SudokuGamePlay({
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [state.status, state.selectedIndex, state.lockMode, game, t]);
+  }, [state.status, state.selectedIndex, state.lockMode, state.notesMode, game, t]);
 
   return (
     <div className="space-y-4">
