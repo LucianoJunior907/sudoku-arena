@@ -2302,3 +2302,37 @@ Stage Summary:
 - The ranked flow is fully functional: rating/xp/level update on the server, local store syncs, history records for both players, leaderboard refreshes.
 - Migrations are automated — no more manual SQL Editor runs needed.
 - Ready for production use.
+
+---
+Task ID: fix-c02-forgery
+Agent: main
+Task: Fix C-02 — usuários podiam forjar partidas Ranked e manipular o rating de outros jogadores.
+
+Work Log:
+- DIAGNÓSTICO (confirmado no banco em 29/10/2026 via Management API): (a) policy "Ranked matches: players can insert" permitia a qualquer autenticado criar ranked_matches(player1=eu, player2=vítima) sem consentimento; (b) finish_ranked_match só validava a grid estruturalmente (validate_sudoku_solution) — nunca comparava com o puzzle real derivado da board_seed; (c) match_solutions existia vazia (D-02). 0 partidas ativas no momento do fix.
+- NOVO ARQUIVO supabase-fix-c02-forgery.sql (12º no runner): (1) drop das policies de INSERT de ranked_matches; (2) porte bit-a-bit do gerador determinístico do cliente (mulberry32+FNV-1a+Fisher-Yates+backtracking de engine.ts) para PL/pgSQL — generate_solved_board(seed); (3) try_matchmake_atomic v2 pré-computa e grava a solução em match_solutions (RLS deny-all + revoke; exception handler garante que o matchmaking nunca quebra); (4) finish_ranked_match v3 exige grid == solução real (armazenada OU derivada da seed — fallback também cobre partida legítima após seed reescrita via D-03); (5) helpers internos (imul32/mb_next_state/mb_rand/hash_string_to_seed/generate_solved_board/solution_matches_match) com revoke execute de public+anon+authenticated+service_role (o Supabase concede por ALTER DEFAULT PRIVILEGES — revoke só de public não basta, constatado no proacl).
+- EDIÇÕES: supabase-ranked-overhaul.sql remove a criação da policy INSERT (drop no topo já existia); .zscripts/run-migrations.sh inclui o novo arquivo (após c01).
+- Este arquivo SUPERSEDE finish_ranked_match (mantém o FIX C-05 — GUC transaction-scoped — e todo o cálculo de XP/level/matches) e try_matchmake_atomic. Aplicação via Management API em 2 estágios (helpers inertes primeiro, depois policies+RPCs), sem replay dos 12 arquivos.
+- Frontend: ZERO mudanças — fix 100% server-side, entra em vigor sem deploy no Vercel. Fluxo normal preservado (fila, matchmake, progresso, abandono, idempotência).
+- NOTA: a aplicação do finish v3 levou junto o FIX C-05 (já revisado/committado em f45c8b6 e pendente de aplicação) porque vivem no mesmo corpo de função — testes confirmaram persistência de rating/XP/level.
+
+E2E Test Results (produção — PostgREST autenticado com 3 usuários de teste c02-test-a/b/c):
+1. ✅ Paridade gerador: 13/13 seeds bit-exatas engine.ts vs generate_solved_board (inclui seed vazia, 64 chars, espaços, formato real)
+2. ✅ T1 INSERT forjado direto (player2=vítima e player1=vítima): HTTP 403 RLS 42501 (antes criava a partida)
+3. ✅ T2 finish em match inexistente: "Match not found"
+4. ✅ T3 authenticated chama generate_solved_board direto: permission denied (sem oráculo de solução)
+5. ✅ T4 anônimo em finish: "Not authenticated"
+6. ✅ T5 partida legítima via fila: criada por try_matchmake_atomic; solução guardada em match_solutions == engine do cliente (81 chars); fila limpa
+7. ✅ T6 grid VÁLIDO QUALQUER (sudoku real de outra seed — o vetor que roubava +32 Elo): "Invalid solution"; match segue active; vítima intacta
+8. ✅ T7 solução real: aceita — winner, +16 Elo (K32×0.5), XP 120 (medium+speed bônus−0 erros), level correto
+9. ✅ T8 idempotência: already_finished=true, sem recompensa dupla
+10. ✅ T9 persistência: match row (0→16/0→0), profiles A/B (16/0 rating, 120/15 XP — C-05 persistiu), matches rows para ambos
+11. ✅ T10 não-participante: "Not a participant"
+12. ✅ T11 fluxo de abandono: B abandona → A vence (+15 Elo, E_A=0.523), status abandoned; update_ranked_progress (204) preservado
+13. ✅ QA navegador (agent-browser): app renderiza, lobby + Ranked com gate de guest, zero erros de console. Lint limpo.
+
+Stage Summary:
+- Forjação de partidas (vetor a) e vitória com grid qualquer (vetor b) estão FECHADAS em produção. Partidas só nascem do matchmaking (fila = consentimento) e só terminam com a solução real validada no servidor.
+- Não corrigidos (fora do escopo C-02, já registrados na auditoria): D-01 (solução ainda derivável no cliente — instant-win por script continua possível; mitigação futura = não expor solução/validar progresso), D-03 (UPDATE permissivo em ranked_matches), D-07 (race do matchmaking), D-08 (security.sql fora do runner), M-01 (sem rate limiting).
+- Dados de teste remanescentes (não destrutivos): contas c02-test-a/b/c, 2 partidas concluídas (1 solved, 1 abandoned) + rows de matches/perfis correspondentes. Senhas: C02Test-{a|b|c}!Ranked2026.
+- Rollback: re-executar supabase-ranked-overhaul.sql + supabase-ranked-xp-matches.sql (restaura finish/matchmake antigos) e re-criar "create policy \"Ranked matches: players can insert\" ... for insert with check (auth.uid() = player1_id or auth.uid() = player2_id)" — reintroduz o bug, só para emergências.

@@ -42,6 +42,7 @@ SQL_FILES=(
   "supabase-ranked-xp-matches.sql"
   "supabase-audit-fixes.sql"
   "supabase-fix-c01-email-leak.sql"
+  "supabase-fix-c02-forgery.sql"
 )
 
 echo "============================================"

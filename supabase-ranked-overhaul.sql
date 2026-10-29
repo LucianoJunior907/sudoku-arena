@@ -108,8 +108,13 @@ drop policy if exists "Player2 can update own fields" on public.ranked_matches;
 
 create policy "Ranked matches: players can read" on public.ranked_matches
   for select using (auth.uid() = player1_id or auth.uid() = player2_id);
-create policy "Ranked matches: players can insert" on public.ranked_matches
-  for insert with check (auth.uid() = player1_id or auth.uid() = player2_id);
+-- FIX C-02: NÃO existe policy de INSERT em ranked_matches. A antiga
+-- "players can insert" permitia forjar partidas contra vítimas arbitrárias
+-- (player1=eu, player2=vítima, sem consentimento). Partidas agora são
+-- criadas EXCLUSIVAMENTE pela RPC security-definer try_matchmake_atomic
+-- (ambos os jogadores precisam estar na fila). O drop no topo desta seção
+-- remove a policy de instalações antigas; supabase-fix-c02-forgery.sql
+-- também a derruba (e valida a solução contra o puzzle real no finish).
 -- UPDATE: players só atualizam progresso (campos player*_*) durante a partida.
 -- status/winner_id/finish_reason/rating só via RPC finish_ranked_match.
 create policy "Ranked matches: players can update progress" on public.ranked_matches
