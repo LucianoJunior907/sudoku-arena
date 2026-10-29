@@ -49,6 +49,9 @@ export interface GameState {
   startedAt: string;
   showMistakes: boolean;
   highlightDigit: number; // 0 = none; digit hovered on the number pad
+  // Lock mode (L + digit / Shift + L + digit)
+  lockMode: "none" | "value" | "note";
+  lockedDigit: number; // 1..9 when lockMode !== "none"; 0 otherwise
 }
 
 type Action =
@@ -71,7 +74,10 @@ type Action =
   | { type: "RESUME" }
   | { type: "TICK" }
   | { type: "RESTART" }
-  | { type: "CLEAR" };
+  | { type: "CLEAR" }
+  | { type: "LOCK_VALUE"; digit: number }
+  | { type: "LOCK_NOTE"; digit: number }
+  | { type: "LOCK_CLEAR" };
 
 function makeGiven(puzzle: Board): boolean[] {
   return puzzle.map((v) => v !== 0);
@@ -102,6 +108,8 @@ function freshState(): GameState {
     startedAt: "",
     showMistakes: false,
     highlightDigit: 0,
+    lockMode: "none",
+    lockedDigit: 0,
   };
 }
 
@@ -440,6 +448,18 @@ function reducer(state: GameState, action: Action): GameState {
         showMistakes: false,
       };
     }
+    case "LOCK_VALUE":
+      if (action.digit < 1 || action.digit > 9) return state;
+      return { ...state, lockMode: "value", lockedDigit: action.digit, highlightDigit: action.digit };
+    case "LOCK_NOTE":
+      if (action.digit < 1 || action.digit > 9) return state;
+      return { ...state, lockMode: "note", lockedDigit: action.digit, highlightDigit: action.digit };
+    case "LOCK_CLEAR":
+      // Reset highlightDigit too: it was overridden by the lock. If the
+      // mouse is still hovering a number-pad button, its onMouseEnter
+      // will re-set it. This avoids a "phantom" highlight lingering
+      // after the lock is dismissed.
+      return { ...state, lockMode: "none", lockedDigit: 0, highlightDigit: 0 };
     default:
       return state;
   }
@@ -723,6 +743,42 @@ export function useSudokuGame(mode: GameMode = "solo") {
   const clearNotes = useCallback(() => { playSound("erase"); dispatch({ type: "CLEAR_NOTES" }); }, []);
   const check = useCallback(() => { playSound("select"); dispatch({ type: "CHECK" }); }, []);
   const setHighlightDigit = useCallback((digit: number) => dispatch({ type: "SET_HIGHLIGHT_DIGIT", digit }), []);
+  const lockValue = useCallback((digit: number) => dispatch({ type: "LOCK_VALUE", digit }), []);
+  const lockNote = useCallback((digit: number) => dispatch({ type: "LOCK_NOTE", digit }), []);
+  const clearLock = useCallback(() => dispatch({ type: "LOCK_CLEAR" }), []);
+  // Apply the currently locked value/note to a specific cell. Used by
+  // click+drag on the board. Respects the same edit rules as normal
+  // input: given/hint cells are skipped, and in value-mode cells that
+  // already hold a different user value are NOT overwritten (matching
+  // the spec "não sobrescreva ... números preexistentes que não possam
+  // ser alterados"). For note mode, toggles the note on each dragged
+  // cell — but to make drag intuitive we only ADD the note (idempotent
+  // across a single drag), never remove it mid-drag.
+  const applyLockedValueToCell = useCallback(
+    (index: number) => {
+      if (index < 0 || index > 80) return;
+      if (state.lockMode === "value") {
+        const v = state.lockedDigit;
+        if (state.given[index] || state.hintCells.includes(index)) return;
+        const prev = state.board[index];
+        // Don't overwrite a different pre-existing user value, AND don't
+        // toggle-erase a cell that already holds the locked value (the
+        // SET_VALUE reducer erases on same-value taps, which is wrong
+        // during a drag-paint).
+        if (prev !== 0 && prev !== v) return;
+        if (prev === v) return;
+        dispatch({ type: "SET_VALUE", index, value: v });
+      } else if (state.lockMode === "note") {
+        const v = state.lockedDigit;
+        if (state.given[index] || state.hintCells.includes(index)) return;
+        if (state.board[index] !== 0) return; // note on filled cell — skip
+        const current = state.notes[index];
+        if (current.includes(v)) return; // idempotent for drag, preserves existing
+        dispatch({ type: "TOGGLE_NOTE", index, value: v });
+      }
+    },
+    [state.lockMode, state.lockedDigit, state.given, state.hintCells, state.board, state.notes]
+  );
   const pause = useCallback(() => dispatch({ type: "PAUSE" }), []);
   const resume = useCallback(() => dispatch({ type: "RESUME" }), []);
   const restart = useCallback(() => {
@@ -759,6 +815,10 @@ export function useSudokuGame(mode: GameMode = "solo") {
     clearNotes,
     check,
     setHighlightDigit,
+    lockValue,
+    lockNote,
+    clearLock,
+    applyLockedValueToCell,
     pause,
     resume,
     restart,

@@ -157,6 +157,9 @@ const translations = {
     "shortcut.move": "Mover seleção (setas)",
     "shortcut.help": "Abrir esta ajuda (?)",
     "shortcut.cycleView": "Alternar views (Alt+←/→)",
+    "shortcut.lockValue": "Travar número para preencher (arraste pinta várias)",
+    "shortcut.lockNote": "Travar número para anotar (arraste anota várias)",
+    "shortcut.lockClear": "Desativar modo travado",
     "solo.autoNotes": "Anotar",
     "solo.clearNotes": "Limpar anotações",
     "solo.check": "Verificar",
@@ -433,6 +436,8 @@ const translations = {
     "board.cell": "Célula",
     "board.empty": "vazia",
     "board.value": "valor",
+    "board.lockValue": "Travar preenchimento",
+    "board.lockNote": "Travar anotação",
 
     // XP notifications
     "xp.levelUp": "Subiu de nível!",
@@ -582,6 +587,9 @@ const translations = {
     "shortcut.move": "Move selection (arrows)",
     "shortcut.help": "Open this help (?)",
     "shortcut.cycleView": "Cycle views (Alt+←/→)",
+    "shortcut.lockValue": "Lock number to fill (drag paints multiple)",
+    "shortcut.lockNote": "Lock number to annotate (drag annotates multiple)",
+    "shortcut.lockClear": "Disable lock mode",
     "solo.autoNotes": "Auto-notes",
     "solo.clearNotes": "Clear notes",
     "solo.check": "Check",
@@ -848,6 +856,8 @@ const translations = {
     "board.cell": "Cell",
     "board.empty": "empty",
     "board.value": "value",
+    "board.lockValue": "Lock fill",
+    "board.lockNote": "Lock note",
 
     "xp.levelUp": "Level up!",
     "xp.nowLevel": "You are now level",

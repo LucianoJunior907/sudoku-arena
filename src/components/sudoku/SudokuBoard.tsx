@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import type { Board, Notes } from "@/lib/sudoku/types";
-import { indexToRc, PEERS } from "@/lib/sudoku/types";
+import { indexToRc, PEERS, BOX_INDEX } from "@/lib/sudoku/types";
 import { candidatesFor as computeCandidates } from "@/lib/sudoku/solver-hint";
 import { useT } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,8 @@ export interface SudokuBoardProps {
   wrongCells: Set<number>;
   selectedIndex: number;
   highlightDigit: number;
+  lockMode: "none" | "value" | "note";
+  lockedDigit: number;
   themeVars?: Record<string, string>;
   settings: {
     highlightPeers: boolean;
@@ -24,6 +26,7 @@ export interface SudokuBoardProps {
     showCandidateCount: boolean;
   };
   onSelect: (index: number) => void;
+  onApplyLocked: (index: number) => void;
 }
 
 export function SudokuBoard({
@@ -35,12 +38,20 @@ export function SudokuBoard({
   wrongCells,
   selectedIndex,
   highlightDigit,
+  lockMode,
+  lockedDigit,
   themeVars,
   settings,
   onSelect,
+  onApplyLocked,
 }: SudokuBoardProps) {
   const t = useT();
   const selectedValue = selectedIndex >= 0 ? board[selectedIndex] : 0;
+
+  // The digit used for "same value" highlights: when a lock is active,
+  // the locked digit takes priority; otherwise fall back to the hovered
+  // number-pad digit or the selected cell's value.
+  const effectiveHighlightDigit = lockMode !== "none" ? lockedDigit : (highlightDigit || selectedValue);
 
   const peerSet = useMemo(() => {
     if (!settings.highlightPeers || selectedIndex < 0) return new Set<number>();
@@ -48,25 +59,30 @@ export function SudokuBoard({
   }, [selectedIndex, settings.highlightPeers]);
 
   const sameSet = useMemo(() => {
-    const digit = highlightDigit || selectedValue;
-    if (!settings.highlightSame || digit === 0) return new Set<number>();
+    const digit = effectiveHighlightDigit;
+    if (!settings.highlightSame && lockMode === "none") {
+      // Even if highlightSame is off, when a lock is active we still
+      // highlight same-digit cells (spec requirement).
+      if (lockMode === "none") return new Set<number>();
+    }
+    if (digit === 0) return new Set<number>();
     const s = new Set<number>();
     for (let i = 0; i < 81; i++) {
       if (board[i] === digit) s.add(i);
     }
     return s;
-  }, [selectedValue, highlightDigit, board, settings.highlightSame]);
+  }, [effectiveHighlightDigit, board, settings.highlightSame, lockMode]);
 
   // Cells that contain the highlight digit as a candidate note.
   const candidateSet = useMemo(() => {
-    const digit = highlightDigit || 0;
+    const digit = effectiveHighlightDigit;
     if (digit === 0) return new Set<number>();
     const s = new Set<number>();
     for (let i = 0; i < 81; i++) {
       if (board[i] === 0 && notes[i].includes(digit)) s.add(i);
     }
     return s;
-  }, [highlightDigit, board, notes]);
+  }, [effectiveHighlightDigit, board, notes]);
 
   // Per-cell candidate counts (for the showCandidateCount display).
   const candidateCounts = useMemo(() => {
@@ -76,6 +92,71 @@ export function SudokuBoard({
     );
   }, [board, settings.showCandidateCount]);
 
+  // ---- Click + drag to paint cells with the locked digit ----
+  // Approach: on pointerdown in a cell, start a drag session and apply.
+  // On pointermove over the board (bubbles from cells), use
+  // elementFromPoint to find the cell under the pointer and apply.
+  // pointerup/cancel ends the drag. This works for mouse, touch, and
+  // automated tests because pointermove bubbles (pointerenter does not).
+  const dragStateRef = useRef<{ active: boolean; indices: Set<number> }>({
+    active: false,
+    indices: new Set(),
+  });
+  const [, forceRender] = useState(0);
+  const boardRef = useRef<HTMLDivElement>(null);
+
+  const applyToCell = (i: number) => {
+    if (dragStateRef.current.indices.has(i)) return;
+    dragStateRef.current.indices.add(i);
+    onApplyLocked(i);
+  };
+
+  const handleCellPointerDown = (i: number) => {
+    if (lockMode !== "none") {
+      dragStateRef.current = { active: true, indices: new Set([i]) };
+      onApplyLocked(i);
+      forceRender((n) => n + 1);
+    } else {
+      onSelect(i);
+    }
+  };
+
+  const handleBoardPointerMove = (e: React.PointerEvent) => {
+    if (!dragStateRef.current.active) return;
+    if (e.buttons !== 1) {
+      // Button no longer held — stop.
+      stopDrag();
+      return;
+    }
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    if (!el) return;
+    // Walk up to find the gridcell.
+    const cell = (el as HTMLElement).closest('[role="gridcell"]') as HTMLElement | null;
+    if (!cell) return;
+    const idx = Number(cell.getAttribute("data-cell-index"));
+    if (Number.isNaN(idx) || idx < 0 || idx > 80) return;
+    applyToCell(idx);
+  };
+
+  const stopDrag = () => {
+    if (dragStateRef.current.active) {
+      dragStateRef.current = { active: false, indices: new Set() };
+      forceRender((n) => n + 1);
+    }
+  };
+
+  // Global pointerup listener to end drag even if pointer leaves the board.
+  useEffect(() => {
+    if (!dragStateRef.current.active) return;
+    const up = () => stopDrag();
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+    return () => {
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+    };
+  });
+
   return (
     <div
       className="relative mx-auto aspect-square w-full max-w-[min(92vw,30rem)] select-none touch-manipulation"
@@ -83,7 +164,27 @@ export function SudokuBoard({
       aria-label="Sudoku board"
       style={themeVars as React.CSSProperties | undefined}
     >
-      <div className="grid h-full w-full grid-cols-9 grid-rows-9 overflow-hidden rounded-lg border-2 border-[var(--cell-border-thick)] bg-[var(--cell-border-thick)] gap-px shadow-lg">
+      {/* Lock badge */}
+      {lockMode !== "none" && (
+        <div
+          className={cn(
+            "absolute -top-3 left-1/2 z-30 -translate-x-1/2 rounded-full border px-3 py-0.5 text-xs font-bold shadow-md",
+            lockMode === "value"
+              ? "border-primary/40 bg-primary text-primary-foreground"
+              : "border-[var(--chart-4)]/40 bg-[var(--chart-4)] text-white"
+          )}
+          role="status"
+          aria-live="polite"
+        >
+          {lockMode === "value" ? t("board.lockValue") : t("board.lockNote")}: {lockedDigit}
+          <span className="ml-1.5 font-normal opacity-80">(L/Esc)</span>
+        </div>
+      )}
+
+      <div
+        ref={boardRef}
+        onPointerMove={handleBoardPointerMove}
+        className="grid h-full w-full grid-cols-9 grid-rows-9 overflow-hidden rounded-lg border-[3px] border-[var(--cell-border-thick)] bg-[var(--cell-border-thick)] gap-px shadow-lg">
         {board.map((value, i) => {
           const { row, col } = indexToRc(i);
           const isGiven = given[i];
@@ -94,11 +195,11 @@ export function SudokuBoard({
           const isConflict = settings.autoCheck && conflicts.has(i);
           const isWrong = wrongCells.has(i);
           const isCandidate = candidateSet.has(i);
-          const highlightVal = highlightDigit || 0;
+          const highlightVal = effectiveHighlightDigit;
 
-          // thick borders between 3x3 boxes
+          // Thick borders between 3x3 boxes — enhanced for clarity.
+          // Internal cell borders stay thin (gap-px + border).
           const borderClasses = cn(
-            "border-[var(--cell-border)]",
             col % 3 === 2 && col !== 8 && "border-r-2 border-r-[var(--cell-border-thick)]",
             row % 3 === 2 && row !== 8 && "border-b-2 border-b-[var(--cell-border-thick)]"
           );
@@ -106,6 +207,7 @@ export function SudokuBoard({
           return (
             <Cell
               key={i}
+              cellIndex={i}
               value={value}
               notes={notes[i]}
               isGiven={isGiven}
@@ -120,7 +222,9 @@ export function SudokuBoard({
               candidateCount={candidateCounts[i]}
               showCandidateCount={settings.showCandidateCount}
               borderClasses={borderClasses}
-              onClick={() => onSelect(i)}
+              isLockedDrag={lockMode !== "none"}
+              onPointerDown={() => handleCellPointerDown(i)}
+              onClick={() => { if (lockMode === "none") onSelect(i); }}
               ariaLabel={`${t("board.cell")} ${row + 1}, ${col + 1}${value ? `, ${t("board.value")} ${value}` : `, ${t("board.empty")}`}`}
             />
           );
@@ -131,6 +235,7 @@ export function SudokuBoard({
 }
 
 function Cell({
+  cellIndex,
   value,
   notes,
   isGiven,
@@ -145,9 +250,12 @@ function Cell({
   candidateCount,
   showCandidateCount,
   borderClasses,
+  isLockedDrag,
+  onPointerDown,
   onClick,
   ariaLabel,
 }: {
+  cellIndex: number;
   value: number;
   notes: number[];
   isGiven: boolean;
@@ -162,6 +270,8 @@ function Cell({
   candidateCount: number;
   showCandidateCount: boolean;
   borderClasses: string;
+  isLockedDrag: boolean;
+  onPointerDown: () => void;
   onClick: () => void;
   ariaLabel: string;
 }) {
@@ -194,10 +304,14 @@ function Cell({
     <button
       type="button"
       role="gridcell"
+      data-cell-index={cellIndex}
       aria-label={ariaLabel}
+      onPointerDown={onPointerDown}
       onClick={onClick}
+      // When in lock mode, use crosshair cursor to hint at drag-paint.
+      style={{ cursor: isLockedDrag ? "crosshair" : "pointer", touchAction: "none" }}
       className={cn(
-        "relative flex aspect-square items-center justify-center border border-[var(--cell-border)] transition-colors duration-100 cursor-pointer",
+        "relative flex aspect-square items-center justify-center border border-[var(--cell-border)] transition-colors duration-100",
         bg,
         borderClasses,
         isSelected && "z-10 animate-pulse-ring ring-2 ring-inset ring-[var(--cell-border-thick)]"
@@ -230,10 +344,10 @@ function NotesGrid({ notes, highlightDigit }: { notes: number[]; highlightDigit:
           <span
             key={n}
             className={cn(
-              "flex items-center justify-center rounded-sm text-[clamp(0.4rem,1.6vw,0.6rem)] font-medium transition-colors",
+              "flex items-center justify-center text-[clamp(0.4rem,1.6vw,0.6rem)] font-medium transition-colors",
               !has && "opacity-0",
               has && !isHi && "text-muted-foreground opacity-80",
-              isHi && "bg-primary/20 font-bold text-primary"
+              isHi && "font-bold text-primary rounded-full ring-1 ring-primary/50 bg-primary/15"
             )}
           >
             {has ? n : ""}

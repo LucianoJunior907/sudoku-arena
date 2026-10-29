@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { useSudokuGame } from "@/hooks/use-sudoku-game";
 import { useAppStore } from "@/lib/store/app-store";
 import { useI18n } from "@/lib/i18n/context";
@@ -47,6 +47,10 @@ export function SudokuGamePlay({
   const { state } = game;
   const boardThemeVars = useMemo(() => getBoardTheme(settings.boardTheme).vars, [settings.boardTheme]);
   const [helpOpen, setHelpOpen] = useState(false);
+  // Tracks the pending lock intent after pressing L (before the digit
+  // arrives). Values: "none" | "value" | "note". Reset on any non-digit
+  // key or after the digit is consumed.
+  const lockIntentRef = useRef<"none" | "value" | "note">("none");
 
   // Keyboard support
   useEffect(() => {
@@ -65,30 +69,75 @@ export function SudokuGamePlay({
     const handler = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
       if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return;
-      if (e.key >= "1" && e.key <= "9") { e.preventDefault(); game.setValue(Number(e.key)); }
+      // Lock mode: L + digit (value), Shift + L + digit (note).
+      // "L" alone (without a following digit) or Escape clears the lock.
+      // We detect L being held: when key === 'l'/'L' AND shift, we mark
+      // a pending "note-lock" awaiting the next digit. When 'l'/'L'
+      // without shift, we mark a pending "value-lock". A bare L with no
+      // following digit clears the lock (handled on keyup / Escape).
+      if (e.key === "l" || e.key === "L") {
+        e.preventDefault();
+        // toggle: if a lock is already active, pressing L clears it.
+        if (state.lockMode !== "none") {
+          game.clearLock();
+        }
+        // Record intent for the next digit.
+        lockIntentRef.current = e.shiftKey ? "note" : "value";
+        return;
+      }
+      if (e.key === "Escape") {
+        if (state.lockMode !== "none") {
+          e.preventDefault();
+          game.clearLock();
+          lockIntentRef.current = "none";
+          return;
+        }
+        // fall through to pause/resume below
+      }
+      if (e.key >= "1" && e.key <= "9") {
+        e.preventDefault();
+        const n = Number(e.key);
+        // If L was just pressed (or a lock is already active), digit
+        // sets/switches the locked digit instead of normal placement.
+        if (lockIntentRef.current === "value" || (state.lockMode === "value" && lockIntentRef.current !== "note")) {
+          game.lockValue(n);
+          lockIntentRef.current = "none";
+          return;
+        }
+        if (lockIntentRef.current === "note" || state.lockMode === "note") {
+          game.lockNote(n);
+          lockIntentRef.current = "none";
+          return;
+        }
+        game.setValue(Number(e.key));
+      }
       else if (e.key === "0" || e.key === "Backspace" || e.key === "Delete") { e.preventDefault(); game.erase(); }
       else if (e.key === "n" || e.key === "N") game.toggleNotesMode();
       else if (e.key === "h" || e.key === "H") {
         if (game.hintsLeft > 0) { game.hint(); toast.success(t("solo.hintApplied")); }
         else toast.error(t("solo.noMoreHints"));
       }
-      else if (e.key === "p" || e.key === "P" || e.key === "Escape") {
+      else if (e.key === "p" || e.key === "P") {
         if (state.status === "playing") game.pause();
         else if (state.status === "paused") game.resume();
       }
-      else if (e.key === "a" || e.key === "A") game.autoNotes();
-      else if (e.key === "c" || e.key === "C") game.check();
+      else if (e.key === "a" || e.key === "A") { game.autoNotes(); lockIntentRef.current = "none"; }
+      else if (e.key === "c" || e.key === "C") { game.check(); lockIntentRef.current = "none"; }
       else if (e.key === "?" || (e.shiftKey && e.key === "/")) { e.preventDefault(); setHelpOpen(true); }
       else if ((e.key === "z" || e.key === "Z") && (e.ctrlKey || e.metaKey) && e.shiftKey) { e.preventDefault(); game.redo(); }
       else if ((e.key === "z" || e.key === "Z") && (e.ctrlKey || e.metaKey)) { e.preventDefault(); game.undo(); }
-      else if (e.key === "ArrowUp") { e.preventDefault(); moveSelection(0, -1); }
-      else if (e.key === "ArrowDown") { e.preventDefault(); moveSelection(0, 1); }
-      else if (e.key === "ArrowLeft") { e.preventDefault(); moveSelection(-1, 0); }
-      else if (e.key === "ArrowRight") { e.preventDefault(); moveSelection(1, 0); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); moveSelection(0, -1); lockIntentRef.current = "none"; }
+      else if (e.key === "ArrowDown") { e.preventDefault(); moveSelection(0, 1); lockIntentRef.current = "none"; }
+      else if (e.key === "ArrowLeft") { e.preventDefault(); moveSelection(-1, 0); lockIntentRef.current = "none"; }
+      else if (e.key === "ArrowRight") { e.preventDefault(); moveSelection(1, 0); lockIntentRef.current = "none"; }
+      else if (e.key !== "Shift" && e.key !== "Control" && e.key !== "Meta" && e.key !== "Alt") {
+        // Any other key cancels a pending L-intent
+        lockIntentRef.current = "none";
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [state.status, state.selectedIndex, game, t]);
+  }, [state.status, state.selectedIndex, state.lockMode, game, t]);
 
   return (
     <div className="space-y-4">
@@ -215,6 +264,9 @@ export function SudokuGamePlay({
             wrongCells={game.wrongCells}
             selectedIndex={state.selectedIndex}
             highlightDigit={state.highlightDigit}
+            lockMode={state.lockMode}
+            lockedDigit={state.lockedDigit}
+            onApplyLocked={game.applyLockedValueToCell}
             themeVars={boardThemeVars}
             settings={{
               highlightPeers: settings.highlightPeers,

@@ -11,11 +11,14 @@ interface ShortcutHelpDialogProps {
 
 interface ShortcutRow {
   keys: string[];
-  labelKey: "shortcut.placeNumber" | "shortcut.erase" | "shortcut.notes" | "shortcut.hint" | "shortcut.autoNotes" | "shortcut.check" | "shortcut.pause" | "shortcut.undo" | "shortcut.redo" | "shortcut.move" | "shortcut.help" | "shortcut.cycleView";
+  labelKey: "shortcut.placeNumber" | "shortcut.erase" | "shortcut.notes" | "shortcut.hint" | "shortcut.autoNotes" | "shortcut.check" | "shortcut.pause" | "shortcut.undo" | "shortcut.redo" | "shortcut.move" | "shortcut.help" | "shortcut.cycleView" | "shortcut.lockValue" | "shortcut.lockNote" | "shortcut.lockClear";
 }
 
 const ROWS: ShortcutRow[] = [
   { keys: ["1", "-", "9"], labelKey: "shortcut.placeNumber" },
+  { keys: ["L", "+", "1-9"], labelKey: "shortcut.lockValue" },
+  { keys: ["Shift", "L", "+", "1-9"], labelKey: "shortcut.lockNote" },
+  { keys: ["L", "/", "Esc"], labelKey: "shortcut.lockClear" },
   { keys: ["Backspace"], labelKey: "shortcut.erase" },
   { keys: ["N"], labelKey: "shortcut.notes" },
   { keys: ["H"], labelKey: "shortcut.hint" },
