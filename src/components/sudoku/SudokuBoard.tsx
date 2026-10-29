@@ -26,7 +26,13 @@ export interface SudokuBoardProps {
     showCandidateCount: boolean;
   };
   onSelect: (index: number) => void;
-  onApplyLocked: (index: number) => void;
+  /**
+   * Apply the locked value/note to a cell.
+   * @param allowToggle when true (single click), clicking a cell that
+   *   already holds the locked value REMOVES it (toggle). When false
+   *   (drag paint), same-value cells are skipped — never erased mid-drag.
+   */
+  onApplyLocked: (index: number, allowToggle?: boolean) => void;
 }
 
 export function SudokuBoard({
@@ -73,16 +79,9 @@ export function SudokuBoard({
     return s;
   }, [effectiveHighlightDigit, board, settings.highlightSame, lockMode]);
 
-  // Cells that contain the highlight digit as a candidate note.
-  const candidateSet = useMemo(() => {
-    const digit = effectiveHighlightDigit;
-    if (digit === 0) return new Set<number>();
-    const s = new Set<number>();
-    for (let i = 0; i < 81; i++) {
-      if (board[i] === 0 && notes[i].includes(digit)) s.add(i);
-    }
-    return s;
-  }, [effectiveHighlightDigit, board, notes]);
+  // NOTE (#1 feedback): cells containing the highlight digit as a note
+  // do NOT get a background highlight anymore — the circle around the
+  // note digit itself (NotesGrid) is the only highlight for notes.
 
   // Per-cell candidate counts (for the showCandidateCount display).
   const candidateCounts = useMemo(() => {
@@ -167,9 +166,11 @@ export function SudokuBoard({
   const handleCellPointerDown = (i: number) => {
     if (lockMode !== "none") {
       // Lock active: select the cell (so row/col/box highlights follow),
-      // apply the locked value, and start a drag-paint session.
+      // apply the locked value (allowToggle = click-to-remove behavior:
+      // clicking a cell that already holds the locked value erases it),
+      // and start a drag-paint session for subsequent cells.
       onSelect(i);
-      onApplyLocked(i);
+      onApplyLocked(i, true);
       startDrag(i);
       forceRender((n) => n + 1);
     } else {
@@ -214,7 +215,6 @@ export function SudokuBoard({
           const isSame = sameSet.has(i);
           const isConflict = settings.autoCheck && conflicts.has(i);
           const isWrong = wrongCells.has(i);
-          const isCandidate = candidateSet.has(i);
           const highlightVal = effectiveHighlightDigit;
 
           // Thick borders between 3x3 boxes — enhanced for clarity.
@@ -237,7 +237,6 @@ export function SudokuBoard({
               isSame={isSame}
               isConflict={isConflict}
               isWrong={isWrong}
-              isCandidate={isCandidate}
               highlightDigit={highlightVal}
               candidateCount={candidateCounts[i]}
               showCandidateCount={settings.showCandidateCount}
@@ -264,7 +263,6 @@ function Cell({
   isSame,
   isConflict,
   isWrong,
-  isCandidate,
   highlightDigit,
   candidateCount,
   showCandidateCount,
@@ -283,7 +281,6 @@ function Cell({
   isSame: boolean;
   isConflict: boolean;
   isWrong: boolean;
-  isCandidate: boolean;
   highlightDigit: number;
   candidateCount: number;
   showCandidateCount: boolean;
@@ -300,8 +297,7 @@ function Cell({
     isSelected && "bg-[var(--cell-bg-selected)] hover:bg-[var(--cell-bg-selected)]",
     isWrong && "bg-[var(--cell-bg-error)] hover:bg-[var(--cell-bg-error)]",
     isConflict && "bg-[var(--cell-bg-error)] hover:bg-[var(--cell-bg-error)]",
-    isHint && !isConflict && !isWrong && "bg-[var(--cell-bg-hint)] hover:bg-[var(--cell-bg-hint)]",
-    isCandidate && !isSame && "bg-[var(--cell-bg-peer)]"
+    isHint && !isConflict && !isWrong && "bg-[var(--cell-bg-hint)] hover:bg-[var(--cell-bg-hint)]"
   );
 
   const text = cn(

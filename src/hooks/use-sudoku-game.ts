@@ -755,23 +755,24 @@ export function useSudokuGame(mode: GameMode = "solo") {
   // cell — but to make drag intuitive we only ADD the note (idempotent
   // across a single drag), never remove it mid-drag.
   const applyLockedValueToCell = useCallback(
-    (index: number) => {
+    (index: number, allowToggle = false) => {
       if (index < 0 || index > 80) return;
       if (state.lockMode === "value") {
         const v = state.lockedDigit;
         if (state.given[index] || state.hintCells.includes(index)) return;
         const prev = state.board[index];
-        // Don't overwrite a different pre-existing user value, AND don't
-        // toggle-erase a cell that already holds the locked value (the
-        // SET_VALUE reducer erases on same-value taps, which is wrong
-        // during a drag-paint).
+        // Don't overwrite a different pre-existing user value.
         if (prev !== 0 && prev !== v) return;
-        if (prev === v) return;
+        // Same value: erase ONLY on an explicit click (allowToggle).
+        // During a drag-paint pass we skip — never erase mid-drag.
+        // (When allowToggle is true, SET_VALUE with the same value
+        // triggers the reducer's tap-same-erases path → toggle remove.)
+        if (prev === v && !allowToggle) return;
         dispatch({ type: "SET_VALUE", index, value: v });
       } else if (state.lockMode === "note") {
         const v = state.lockedDigit;
         if (state.given[index] || state.hintCells.includes(index)) return;
-        if (state.board[index] !== 0) return; // note on filled cell — skip
+        if (state.board[index] !== 0) return; // only empty cells get notes
         const current = state.notes[index];
         if (current.includes(v)) return; // idempotent for drag, preserves existing
         dispatch({ type: "TOGGLE_NOTE", index, value: v });
