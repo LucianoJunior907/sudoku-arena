@@ -428,20 +428,24 @@ export const useAppStore = create<AppState>((set, get) => ({
     const newLevelInfo = levelFromXp(newTotalXp);
     const profile = { ...prevProfile, totalXp: newTotalXp };
 
-    // award streak freezes on crossing certain level thresholds
-    if (newLevelInfo.level > prevLevel) {
-      const thresholds = [3, 7, 14];
-      const crossed = thresholds.filter(
-        (th) => prevLevel < th && newLevelInfo.level >= th
-      );
-      if (crossed.length > 0) {
-        profile.streakFreezes = (profile.streakFreezes ?? 0) + crossed.length;
-      }
+    // Level thresholds that award a streak freeze when crossed. `crossed`
+    // is computed once in the outer scope so BOTH the streak-freeze award
+    // and the levelUp event below can read it. (Previously `crossed` was
+    // a const inside the first if-block and was out of scope in the
+    // second if-block, causing a ReferenceError that crashed the win
+    // flow whenever achievement bonus XP crossed a level boundary.)
+    const leveledUp = newLevelInfo.level > prevLevel;
+    const crossed = leveledUp
+      ? [3, 7, 14].filter((th) => prevLevel < th && newLevelInfo.level >= th)
+      : [];
+
+    if (crossed.length > 0) {
+      profile.streakFreezes = (profile.streakFreezes ?? 0) + crossed.length;
     }
     localPersistence.set(KEYS.profile, profile);
 
     const levelUps = [...get().levelUps];
-    if (newLevelInfo.level > prevLevel) {
+    if (leveledUp) {
       const prevUnlockedCos = new Set(unlockedCosmeticsForLevel(prevLevel).map((c) => c.id));
       const nowUnlockedCos = unlockedCosmeticsForLevel(newLevelInfo.level)
         .filter((c) => !prevUnlockedCos.has(c.id))
