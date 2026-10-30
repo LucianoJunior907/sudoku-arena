@@ -62,9 +62,15 @@ export function SudokuBoard({
   const effectiveHighlightDigit = lockMode !== "none" ? lockedDigit : (highlightDigit || selectedValue);
 
   const peerSet = useMemo(() => {
+    // When a lock is active, row/col/box peer highlighting is SUPPRESSED
+    // (user feedback): only the locked-digit illumination (sameSet) +
+    // the badge + the crosshair cursor remain. Placing a value while
+    // locked also won't highlight peers, since the selection-driven
+    // peer highlight is off for as long as the lock is active.
+    if (lockMode !== "none") return new Set<number>();
     if (!settings.highlightPeers || selectedIndex < 0) return new Set<number>();
     return new Set(PEERS[selectedIndex]);
-  }, [selectedIndex, settings.highlightPeers]);
+  }, [selectedIndex, settings.highlightPeers, lockMode]);
 
   const sameSet = useMemo(() => {
     const digit = effectiveHighlightDigit;
