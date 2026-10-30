@@ -761,14 +761,24 @@ export function useSudokuGame(mode: GameMode = "solo") {
   // the lock was set as a "value" lock before notes mode was turned on.
   // (The TOGGLE_NOTES_MODE reducer also syncs lockMode ↔ notesMode, but
   // we double-check here for robustness.) Otherwise the branch follows
-  // lockMode. Respects the same edit rules as normal input: given/hint
-  // cells are skipped, and value-mode cells that already hold a
-  // different user value are NOT overwritten. For note mode, toggles
-  // the note on each dragged cell — but to make drag intuitive we only
-  // ADD the note (idempotent across a single drag), never remove it
-  // mid-drag.
+  // lockMode.
+  //
+  // VALUE mode (user feedback: "se eu clicar em uma célula que já
+  // estiver o numero, ele será apagado, e se eu arrastar o mouse por
+  // cima de outras celulas iguais tambem serão apagadas"):
+  //   - empty cell   → fill with the locked value
+  //   - same value   → ERASE (toggle remove) — works for BOTH click
+  //                    and drag. The dragStateRef.indices Set in
+  //                    SudokuBoard guarantees each cell is processed
+  //                    at most once per drag, so erase-on-drag is
+  //                    safe and idempotent within a single gesture.
+  //   - other value  → skipped (never overwrite a different user value)
+  //   - given/hint   → skipped (protected)
+  //
+  // NOTE mode: drag only ADDS the note to empty cells (idempotent —
+  // cells that already hold the note are skipped, never erased mid-drag).
   const applyLockedValueToCell = useCallback(
-    (index: number, allowToggle = false) => {
+    (index: number) => {
       if (index < 0 || index > 80) return;
       if (state.lockedDigit === 0) return;
       const v = state.lockedDigit;
@@ -777,11 +787,10 @@ export function useSudokuGame(mode: GameMode = "solo") {
       if (!isNote) {
         if (state.given[index] || state.hintCells.includes(index)) return;
         const prev = state.board[index];
-        // Don't overwrite a different pre-existing user value.
+        // Don't touch a different pre-existing user value.
         if (prev !== 0 && prev !== v) return;
-        // Same value: erase ONLY on an explicit click (allowToggle).
-        // During a drag-paint pass we skip — never erase mid-drag.
-        if (prev === v && !allowToggle) return;
+        // Empty → fill. Same value → erase (the SET_VALUE reducer's
+        // tap-same-erases path handles the toggle for both click & drag).
         dispatch({ type: "SET_VALUE", index, value: v });
       } else {
         if (state.given[index] || state.hintCells.includes(index)) return;

@@ -27,12 +27,14 @@ export interface SudokuBoardProps {
   };
   onSelect: (index: number) => void;
   /**
-   * Apply the locked value/note to a cell.
-   * @param allowToggle when true (single click), clicking a cell that
-   *   already holds the locked value REMOVES it (toggle). When false
-   *   (drag paint), same-value cells are skipped — never erased mid-drag.
+   * Apply the locked value/note to a cell. Used for both the initial
+   * click and subsequent drag-paint cells. In value mode, a cell that
+   * already holds the locked value is ERASED (toggle) — so dragging
+   * over same-value cells erases them too. The dragStateRef.indices
+   * Set in this component ensures each cell is processed at most once
+   * per drag, keeping erase-on-drag idempotent within one gesture.
    */
-  onApplyLocked: (index: number, allowToggle?: boolean) => void;
+  onApplyLocked: (index: number) => void;
 }
 
 export function SudokuBoard({
@@ -171,11 +173,12 @@ export function SudokuBoard({
   const handleCellPointerDown = (i: number) => {
     if (lockMode !== "none") {
       // Lock active: select the cell (so row/col/box highlights follow),
-      // apply the locked value (allowToggle = click-to-remove behavior:
-      // clicking a cell that already holds the locked value erases it),
-      // and start a drag-paint session for subsequent cells.
+      // apply the locked value (a cell that already holds the locked
+      // value is erased — toggle), and start a drag-paint session for
+      // subsequent cells. The dragStateRef.indices Set prevents the
+      // start cell from being re-processed during the same drag.
       onSelect(i);
-      onApplyLocked(i, true);
+      onApplyLocked(i);
       startDrag(i);
       forceRender((n) => n + 1);
     } else {
