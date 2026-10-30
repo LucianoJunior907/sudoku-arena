@@ -775,8 +775,15 @@ export function useSudokuGame(mode: GameMode = "solo") {
   //   - other value  → skipped (never overwrite a different user value)
   //   - given/hint   → skipped (protected)
   //
-  // NOTE mode: drag only ADDS the note to empty cells (idempotent —
-  // cells that already hold the note are skipped, never erased mid-drag).
+  // NOTE mode (user feedback: per-cell independent toggle on drag):
+  //   - cell WITHOUT the note → ADD it
+  //   - cell WITH the note    → REMOVE it
+  //   - each cell is processed at most once per drag (the
+  //     dragStateRef.indices Set in SudokuBoard guarantees this), so
+  //     re-passing over a cell in the same gesture does NOT re-toggle.
+  //   - the decision is made INDIVIDUALLY per cell, never based on the
+  //     first cell touched. TOGGLE_NOTE handles add/remove internally.
+  //   - given/hint cells & cells holding a value are skipped (protected).
   const applyLockedValueToCell = useCallback(
     (index: number) => {
       if (index < 0 || index > 80) return;
@@ -795,12 +802,15 @@ export function useSudokuGame(mode: GameMode = "solo") {
       } else {
         if (state.given[index] || state.hintCells.includes(index)) return;
         if (state.board[index] !== 0) return; // only empty cells get notes
-        const current = state.notes[index];
-        if (current.includes(v)) return; // idempotent for drag, preserves existing
+        // Per-cell independent toggle: TOGGLE_NOTE adds if absent,
+        // removes if present. The dragStateRef.indices Set in
+        // SudokuBoard ensures each cell is processed at most once per
+        // drag — so a single gesture won't accidentally re-toggle a
+        // cell it already touched.
         dispatch({ type: "TOGGLE_NOTE", index, value: v });
       }
     },
-    [state.lockMode, state.lockedDigit, state.notesMode, state.given, state.hintCells, state.board, state.notes]
+    [state.lockMode, state.lockedDigit, state.notesMode, state.given, state.hintCells, state.board]
   );
   const pause = useCallback(() => dispatch({ type: "PAUSE" }), []);
   const resume = useCallback(() => dispatch({ type: "RESUME" }), []);
